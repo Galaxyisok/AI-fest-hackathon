@@ -1,0 +1,181 @@
+package com.scamguard.calls
+
+import com.scamguard.judge.Band
+import com.scamguard.judge.CallerPrior
+import com.scamguard.judge.CascadePolicy
+import com.scamguard.judge.JudgeOutcome
+import com.scamguard.judge.PiiRedactor
+import com.scamguard.judge.Score
+import com.scamguard.judge.ScoreFusion
+import com.scamguard.judge.Signal
+import com.scamguard.judge.Tier
+import com.scamguard.judge.Verdict
+import com.scamguard.profile.VulnerabilityProfile
+import com.scamguard.stt.SttEvent
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+enum class Mode { LIVE, DEMO }
+
+/** Everything the screen shows. Held in memory only; gone when the call ends. */
+data class GuardUi(
+    val active: Boolean = false,
+    val mode: Mode? = null,
+    val title: String = "",
+    val preparing: Boolean = false,
+    val finished: Boolean = false,
+    val score: Score = Score(null, Band.LISTENING, null),
+    val reason: String = "",
+    val signals: List<Signal> = emptyList(),
+    val heard: String = "",                 // what was sent to the judge: numbers already removed
+    val codeSpoken: Boolean = false,
+    val problem: String? = null,
+    val micSilenced: Boolean = false,
+    val checks: Int = 0,
+    val deepChecks: Int = 0,
+)
+
+/** Process-wide handle shared by the service (writer) and the screens (readers). */
+object Guard {
+    val ui = MutableStateFlow(GuardUi())
+
+    /** Set by the pre-answer caller check; used if the user then starts listening. Never written to disk. */
+    @Volatile var pendingPrior: CallerPrior? = null
+    @Volatile var pendingPriorAt: Long = 0
+    fun takePrior(nowMs: Long): CallerPrior =
+        pendingPrior?.takeIf { nowMs - pendingPriorAt < 15 * 60_000 } ?: CallerPrior()
+}
+
+/**
+ * The pipeline from recognised words to the number on screen. Independent of where the audio
+ * comes from, so the live microphone and the demo recordings exercise exactly the same code.
+ *
+ * All methods must be called on [scope], which is confined to one thread.
+ */
+class GuardSession(
+    private val scope: CoroutineScope,
+    private val judge: suspend (Tier, String) -> JudgeOutcome,   // receives REDACTED text only
+    private val profile: VulnerabilityProfile?,
+    private val prior: CallerPrior,
+    private val ui: MutableStateFlow<GuardUi>,
+    private val now: () -> Long = { System.nanoTime() / 1_000_000 },
+) {
+    private val fusion = ScoreFusion(prior)
+    private val policy = CascadePolicy()
+    private val finals = ArrayList<String>()
+    private var partial = ""
+    private var judgedWords = 0
+    private var pending = false
+    private var fastRunning = false
+    private var deepRunning = false
+    private var codeSpoken = false
+
+    fun onEvent(e: SttEvent) {
+        when (e) {
+            is SttEvent.Partial -> {
+                partial = e.text
+                publishHeard()
+                // Do not wait for the speaker to pause: re-check after every dozen new words.
+                if (wordCount(transcript()) - judgedWords >= WORDS_BETWEEN_CHECKS) kick()
+            }
+            is SttEvent.Final -> {
+                finals.add(e.text)
+                partial = ""
+                publishHeard()
+                kick()
+            }
+        }
+    }
+
+    /** Wait for checks that are still in flight (used when a recording ends). */
+    suspend fun awaitIdle(maxMs: Long = 45_000) {
+        val start = now()
+        while ((pending || fastRunning || deepRunning) && now() - start < maxMs) delay(100)
+    }
+
+    private fun transcript(): String =
+        (finals + listOfNotNull(partial.takeIf { it.isNotEmpty() })).joinToString("\n")
+
+    private fun redacted(): PiiRedactor.Result {
+        // Redact line by line so line breaks (pauses between speakers) survive for the judge.
+        val parts = transcript().split("\n").map { PiiRedactor.redact(it) }
+        if (parts.any { it.codeSpoken }) codeSpoken = true
+        return PiiRedactor.Result(parts.joinToString("\n") { it.text }, codeSpoken)
+    }
+
+    private fun publishHeard() {
+        val r = redacted()
+        ui.update { it.copy(heard = r.text.takeLast(HEARD_CHARS), codeSpoken = r.codeSpoken) }
+    }
+
+    private fun kick() {
+        pending = true
+        if (fastRunning) return
+        fastRunning = true
+        scope.launch {
+            try {
+                while (pending) { pending = false; runFast() }
+            } finally {
+                fastRunning = false
+            }
+        }
+    }
+
+    private suspend fun runFast() {
+        val r = redacted()
+        val words = wordCount(r.text)
+        if (words < MIN_WORDS) return
+        judgedWords = words
+        when (val out = judge(Tier.FAST, r.text)) {
+            is JudgeOutcome.Ok -> {
+                val score = apply(out.verdict)
+                maybeDeep(score, out.verdict.probability.toDouble())
+            }
+            JudgeOutcome.NoVerdict -> Unit
+            is JudgeOutcome.Failed -> ui.update { it.copy(problem = out.userMessage) }
+        }
+    }
+
+    private fun maybeDeep(score: Score, fastP: Double) {
+        if (deepRunning || !policy.shouldRunDeep(now(), score.raw, fastP)) return
+        deepRunning = true
+        policy.onDeepStarted(now(), fastP)
+        scope.launch {
+            try {
+                val out = judge(Tier.DEEP, redacted().text)
+                if (out is JudgeOutcome.Ok) {
+                    apply(out.verdict)
+                    ui.update { it.copy(deepChecks = it.deepChecks + 1) }
+                }
+                // A failed or declined deep check is not an error for the user: the fast score stands.
+            } finally {
+                deepRunning = false
+            }
+        }
+    }
+
+    private fun apply(v: Verdict): Score {
+        val score = fusion.update(v.toFusionInput(profile))
+        ui.update {
+            val informative = v.confidence != "low"
+            it.copy(
+                score = score,
+                reason = if (informative) v.reason else it.reason,
+                signals = if (informative) v.signals.filter { s -> s.score >= 2 }.sortedByDescending { s -> s.score } else it.signals,
+                problem = null,
+                checks = it.checks + 1,
+            )
+        }
+        return score
+    }
+
+    companion object {
+        const val MIN_WORDS = 8
+        const val WORDS_BETWEEN_CHECKS = 12
+        const val HEARD_CHARS = 600
+        fun wordCount(s: String) = s.split(Regex("\\s+")).count { it.isNotEmpty() }
+    }
+}

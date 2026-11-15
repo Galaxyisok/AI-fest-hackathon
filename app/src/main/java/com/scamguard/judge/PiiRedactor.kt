@@ -12,6 +12,8 @@ object PiiRedactor {
     data class Result(val text: String, val codeSpoken: Boolean)
 
     private val DIGIT_WORDS = setOf("zero", "oh", "one", "two", "three", "four", "five", "six", "seven", "eight", "nine")
+    // Speech recognition often writes a spoken digit as its sound-alike. Counted only next to real digit words.
+    private val SOUND_ALIKES = setOf("for", "to", "too", "ate", "won")
     private val MULTIPLIERS = mapOf("double" to 2, "triple" to 3)
     private val ID_RE = Regex("[A-Za-z0-9._+-]+@[A-Za-z0-9.-]+")
     private val DIGIT_RUN_RE = Regex("\\d(?:[ -]?\\d){3,}")
@@ -39,16 +41,18 @@ object PiiRedactor {
         while (i < tokens.size) {
             var j = i
             var digits = 0
+            var real = 0
             while (j < tokens.size) {
                 val w = bare(tokens[j])
-                if (w in DIGIT_WORDS) { digits += 1; j += 1; continue }
+                if (w in DIGIT_WORDS) { digits += 1; real += 1; j += 1; continue }
+                if (w in SOUND_ALIKES) { digits += 1; j += 1; continue }
                 val mult = MULTIPLIERS[w]
                 if (mult != null && j + 1 < tokens.size && bare(tokens[j + 1]) in DIGIT_WORDS) {
-                    digits += mult; j += 2; continue
+                    digits += mult; real += 1; j += 2; continue
                 }
                 break
             }
-            if (digits >= 4) {
+            if (digits >= 4 && real >= 3) {
                 if (isCodeLength(digits)) codeSpoken = true
                 result.add(label(digits))
                 i = j

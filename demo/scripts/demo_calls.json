@@ -1,0 +1,70 @@
+{
+  "_note": "Synthetic demo calls. Scripted by the team, spoken by Microsoft Edge neural text-to-speech voices (edge-tts). No real person's voice. Digits are written as words because that is how they are spoken.",
+  "voices": {
+    "male": "en-IN-PrabhatNeural",
+    "female": "en-IN-NeerjaNeural",
+    "female2": "en-IN-NeerjaExpressiveNeural"
+  },
+  "calls": [
+    {
+      "file": "scam_digital_arrest.wav",
+      "label": "scam",
+      "category": "digital_arrest",
+      "lines": [
+        ["female2", "Hello, am I speaking with the owner of this mobile number? This is the international courier help desk, Mumbai."],
+        ["female", "Yes. Who is this?"],
+        ["female2", "Madam, a parcel booked in your name to Taiwan has been stopped by customs. It contains five passports, three credit cards and one hundred forty grams of narcotics."],
+        ["female", "What? I have not sent any parcel."],
+        ["female2", "Your Aadhaar was used for the booking. This is now a criminal matter. I am transferring this call to the Mumbai cyber crime police. Do not disconnect."],
+        ["male", "This is Inspector Vikram Rathod, Mumbai crime branch. There is a money laundering case registered against your Aadhaar. An arrest warrant has been issued in your name."],
+        ["female", "Sir, please, I have done nothing. What should I do?"],
+        ["male", "Listen carefully. You are under digital arrest until verification is complete. You must stay on this call. Do not tell your family or anyone else. This investigation is confidential. Go to a room alone and close the door."],
+        ["female", "Okay, okay. I am alone now."],
+        ["male", "To prove your money is clean, you must transfer all the funds in your account to the Reserve Bank verification account I am giving you. It will be returned in two hours. Open your banking app now and do the transfer immediately, or officers will come to arrest you tonight."]
+      ]
+    },
+    {
+      "file": "scam_kyc_bank.wav",
+      "label": "scam",
+      "category": "kyc_bank",
+      "lines": [
+        ["male", "Good afternoon. I am calling from the State Bank head office, K Y C department. Am I speaking with the account holder?"],
+        ["female", "Yes, speaking."],
+        ["male", "Madam, your K Y C has expired, and your account and A T M card will be blocked today by six P M. I can update it for you right now on this call so that the account stays active."],
+        ["female", "Oh. I did not get any message about this. Should I go to the branch?"],
+        ["male", "No need to go to the branch madam, there is no time, the block is automatic. I am sending a verification code to your mobile now. Please tell me the six digit code you have received."],
+        ["female", "Okay, one second. It says four, eight, two, nine, one, three."],
+        ["male", "Thank you. One more step. Please install the Any Desk app from the Play Store so that I can complete the verification on your phone. Then tell me your card number and the three digit number on the back of the card."]
+      ]
+    },
+    {
+      "file": "scam_job_offer.wav",
+      "label": "scam",
+      "category": "job_offer",
+      "lines": [
+        ["female2", "Hello! Congratulations. I am Priya from the H R team for work from home recruitment. Your resume was shortlisted from the job portal."],
+        ["male", "Oh, really? I did apply for some internships. Which role is this?"],
+        ["female2", "It is a data entry role. You work only two hours a day from home, and the salary is thirty five thousand rupees per month. No interview is needed. You are directly selected."],
+        ["male", "That sounds great. What do I have to do?"],
+        ["female2", "Only twenty slots are left, and they close in the next ten minutes. To confirm your slot, you need to pay a refundable registration and training kit fee of one thousand four hundred ninety nine rupees."],
+        ["male", "I have to pay to get the job?"],
+        ["female2", "It is fully refundable with your first salary. I am sending a U P I payment request to your number right now. Just open it, enter your U P I pin, and approve it while I stay on the line. Please do it quickly, otherwise the offer goes to the next candidate."]
+      ]
+    },
+    {
+      "file": "genuine_bank_card.wav",
+      "label": "genuine",
+      "category": "bank_transaction_check",
+      "lines": [
+        ["female", "Hello, good evening. This is Anjali calling from the bank's credit card team. Am I speaking with the card holder?"],
+        ["male", "Yes, speaking."],
+        ["female", "This is a service call about a payment on your credit card. We noticed a purchase of twelve thousand four hundred rupees at an electronics store today at four P M. Did you make this purchase?"],
+        ["male", "Yes, that was me. I bought headphones."],
+        ["female", "Thank you for confirming. Then there is nothing more you need to do. The payment will go through as normal."],
+        ["male", "Okay. Do you need any details from me?"],
+        ["female", "No, not at all. Please remember that the bank will never ask for your O T P, pin or C V V on a call. If you ever have a doubt, hang up and call the number printed on the back of your card. Have a good evening."],
+        ["male", "Thank you. Bye."]
+      ]
+    }
+  ]
+}

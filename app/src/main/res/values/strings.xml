@@ -1,3 +1,5 @@
 <resources>
     <string name="app_name">Scam Guard</string>
+    <string name="call_audio_access_label">Scam Guard call listening</string>
+    <string name="call_audio_access_description">Lets Scam Guard hear a phone call that you have put on speaker, so it can warn you about scam patterns. Android only allows this for apps you switch on here. Scam Guard does not read your screen, does not see what you type, and does not record or save the call.</string>
 </resources>

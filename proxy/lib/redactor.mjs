@@ -3,6 +3,8 @@
 // The proxy also runs this on every transcript it receives (defence in depth).
 
 const DIGIT_WORDS = new Set(['zero', 'oh', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine']);
+// Speech recognition often writes a spoken digit as its sound-alike. Counted only next to real digit words.
+const SOUND_ALIKES = new Set(['for', 'to', 'too', 'ate', 'won']);
 const MULTIPLIERS = { double: 2, triple: 3 };
 const ID_RE = /[A-Za-z0-9._+-]+@[A-Za-z0-9.-]+/g;
 const DIGIT_RUN_RE = /\d(?:[ -]?\d){3,}/g;
@@ -28,15 +30,17 @@ export function redact(text) {
   while (i < tokens.length) {
     let j = i;
     let digits = 0;
+    let real = 0;
     while (j < tokens.length) {
       const w = bare(tokens[j]);
-      if (DIGIT_WORDS.has(w)) { digits += 1; j += 1; continue; }
+      if (DIGIT_WORDS.has(w)) { digits += 1; real += 1; j += 1; continue; }
+      if (SOUND_ALIKES.has(w)) { digits += 1; j += 1; continue; }
       if (MULTIPLIERS[w] && j + 1 < tokens.length && DIGIT_WORDS.has(bare(tokens[j + 1]))) {
-        digits += MULTIPLIERS[w]; j += 2; continue;
+        digits += MULTIPLIERS[w]; real += 1; j += 2; continue;
       }
       break;
     }
-    if (digits >= 4) {
+    if (digits >= 4 && real >= 3) {
       if (isCodeLength(digits)) codeSpoken = true;
       result.push(label(digits));
       i = j;
