@@ -1,0 +1,321 @@
+{
+ "_note": "10 held-out test calls (5 scam, 5 genuine) spoken by TTS voices, then band-limited to telephone quality with added noise (make_audio.py --phone). Used to measure what speech recognition costs the detector.",
+ "voices": {
+  "male": "en-IN-PrabhatNeural",
+  "female": "en-IN-NeerjaNeural"
+ },
+ "calls": [
+  {
+   "id": "t-s01",
+   "file": "t-s01.wav",
+   "label": "scam",
+   "category": "digital_arrest",
+   "prior": {
+    "international": true
+   },
+   "lines": [
+    [
+     "male",
+     "Am I talking to the person whose Aadhaar ends in four seven? This is the Narcotics Control Bureau."
+    ],
+    [
+     "female",
+     "Yes, why?"
+    ],
+    [
+     "male",
+     "A bank account opened with your Aadhaar in Pune has received two crore rupees from a drug trafficking network. You are named as an accused."
+    ],
+    [
+     "female",
+     "I have never been to Pune. There is some mistake."
+    ],
+    [
+     "male",
+     "That is for the investigation to decide. For the next four hours you will remain on video call in front of our officer. You are not permitted to leave the room, disconnect, or speak to any family member."
+    ],
+    [
+     "female",
+     "Please sir, I will cooperate."
+    ],
+    [
+     "male",
+     "Good. As per the Supreme Court procedure your funds have to be audited. Transfer the full balance to the secure audit account. If the money is clean it comes back within one day with a clearance certificate."
+    ]
+   ]
+  },
+  {
+   "id": "t-s04",
+   "file": "t-s04.wav",
+   "label": "scam",
+   "category": "kyc_bank",
+   "prior": {},
+   "lines": [
+    [
+     "female",
+     "Hello madam, calling from your bank. We have noticed that your net banking will be suspended in thirty minutes as your PAN card is not linked."
+    ],
+    [
+     "male",
+     "Oh. How can I link it?"
+    ],
+    [
+     "female",
+     "I am sending you a link by SMS. Please open it, it looks exactly like the bank website. Log in with your user ID and password there."
+    ],
+    [
+     "male",
+     "Okay, it is asking for a password."
+    ],
+    [
+     "female",
+     "Yes, enter it. Then a one time password will come to your phone, type it in the same page and also read it to me so I can confirm from the back end."
+    ]
+   ]
+  },
+  {
+   "id": "t-s10",
+   "file": "t-s10.wav",
+   "label": "scam",
+   "category": "job_offer",
+   "prior": {},
+   "lines": [
+    [
+     "male",
+     "Hello, am I speaking with the candidate who uploaded a resume on the job site? I am calling from the airline ground staff hiring team."
+    ],
+    [
+     "female",
+     "Yes, I am looking for a job."
+    ],
+    [
+     "male",
+     "Congratulations, you are selected for the airport customer service post. Salary is twenty eight thousand plus free meals."
+    ],
+    [
+     "female",
+     "Without an interview?"
+    ],
+    [
+     "male",
+     "The interview is a formality after joining. Before the offer letter is released, you need to deposit three thousand five hundred for uniform and ID card. It is adjusted in the first salary."
+    ],
+    [
+     "female",
+     "Can I pay after I join?"
+    ],
+    [
+     "male",
+     "No, the joining list closes today evening. Pay to the HR account by UPI now and I will email the offer letter in ten minutes."
+    ]
+   ]
+  },
+  {
+   "id": "t-s13",
+   "file": "t-s13.wav",
+   "label": "scam",
+   "category": "family_emergency",
+   "prior": {},
+   "lines": [
+    [
+     "female",
+     "Papa, papa, it is me. I am in big trouble, please help."
+    ],
+    [
+     "male",
+     "Beta? Your voice sounds different. What happened?"
+    ],
+    [
+     "female",
+     "I have a cold. Papa I was in a friend's car and the police stopped us, they found something in the car. They are saying they will file a case."
+    ],
+    [
+     "male",
+     "Where are you? I am coming."
+    ],
+    [
+     "female",
+     "No no, do not come, and do not tell mummy. The inspector says if we pay fifty thousand now he will let me go without a case. He is giving a number, please transfer immediately papa, please."
+    ]
+   ]
+  },
+  {
+   "id": "t-s20",
+   "file": "t-s20.wav",
+   "label": "scam",
+   "category": "utility_disconnect",
+   "prior": {},
+   "lines": [
+    [
+     "male",
+     "Dear customer, this is the gas company. Your piped gas connection is scheduled for disconnection today because your customer profile is not updated."
+    ],
+    [
+     "female",
+     "Nobody informed me."
+    ],
+    [
+     "male",
+     "We sent messages. I can update it right now and stop the disconnection. Please pay the update fee of twelve rupees through the link I am sending."
+    ],
+    [
+     "female",
+     "Okay, I opened the link."
+    ],
+    [
+     "male",
+     "Enter your debit card number and ATM PIN there. If the page asks to install the support app, allow it, it helps me see the error on your screen."
+    ]
+   ]
+  },
+  {
+   "id": "t-g01",
+   "file": "t-g01.wav",
+   "label": "genuine",
+   "category": "bank_transaction_check",
+   "prior": {},
+   "lines": [
+    [
+     "female",
+     "Good afternoon. This is a verification call from your bank's card security desk. Did you just try a payment of eight thousand nine hundred at a travel website?"
+    ],
+    [
+     "male",
+     "Yes, I was booking tickets and it failed."
+    ],
+    [
+     "female",
+     "It was held by our system because it was a new merchant. I have marked it as genuine. Please try the payment again after five minutes."
+    ],
+    [
+     "male",
+     "Do you need my card number?"
+    ],
+    [
+     "female",
+     "No, we never ask for the card number, PIN or OTP. You only need to retry from your side. Thank you for confirming."
+    ]
+   ]
+  },
+  {
+   "id": "t-g03",
+   "file": "t-g03.wav",
+   "label": "genuine",
+   "category": "kyc_reminder",
+   "prior": {},
+   "lines": [
+    [
+     "male",
+     "Hello sir, this is your relationship manager from the bank branch near the bus stand. Your account's re KYC is pending and the account may be frozen for debits after month end."
+    ],
+    [
+     "female",
+     "Frozen? That would be a problem."
+    ],
+    [
+     "male",
+     "Yes, so please complete it this week. You can walk into any branch with your Aadhaar and PAN, it takes ten minutes."
+    ],
+    [
+     "female",
+     "I am travelling. Any other way?"
+    ],
+    [
+     "male",
+     "You can do video KYC from the bank's official app, the option is on the home screen. I cannot do it for you over the phone. If you get stuck, come and meet me at the branch."
+    ]
+   ]
+  },
+  {
+   "id": "t-g04",
+   "file": "t-g04.wav",
+   "label": "genuine",
+   "category": "loan_reminder",
+   "prior": {},
+   "lines": [
+    [
+     "female",
+     "This is the collections team of the finance company. Your credit card bill of eighteen thousand four hundred is forty days overdue."
+    ],
+    [
+     "male",
+     "I know, I had some medical expenses."
+    ],
+    [
+     "female",
+     "Sir, this is the third reminder. If the minimum amount is not paid by Monday the card will be suspended and it will be reported to the credit bureau."
+    ],
+    [
+     "male",
+     "Can I pay half now?"
+    ],
+    [
+     "female",
+     "You can pay any amount through the app or the official website, minimum due is two thousand one hundred. I can also email you the payment options. Please do not pay any agent in cash."
+    ],
+    [
+     "male",
+     "Okay, I will pay the minimum today."
+    ]
+   ]
+  },
+  {
+   "id": "t-g07",
+   "file": "t-g07.wav",
+   "label": "genuine",
+   "category": "customs_real",
+   "prior": {},
+   "lines": [
+    [
+     "male",
+     "Hello, this is the postal department's foreign post office. A parcel from abroad addressed to you is being held for customs assessment."
+    ],
+    [
+     "female",
+     "Yes, I ordered some books from a UK website."
+    ],
+    [
+     "male",
+     "We need the invoice for the order to assess duty. Please email it to the address printed on the intimation letter we posted to you, or bring it to the foreign post office."
+    ],
+    [
+     "female",
+     "Is there a duty to pay?"
+    ],
+    [
+     "male",
+     "If any duty is assessed, the postman will collect it at delivery and give you a printed receipt. Nothing is to be paid over the phone."
+    ]
+   ]
+  },
+  {
+   "id": "t-g19",
+   "file": "t-g19.wav",
+   "label": "genuine",
+   "category": "police_verification",
+   "prior": {},
+   "lines": [
+    [
+     "female",
+     "Hello, this is the traffic police control room. A vehicle registered in your name was involved in a signal jump, a challan has been generated."
+    ],
+    [
+     "male",
+     "When was this?"
+    ],
+    [
+     "female",
+     "Yesterday at six forty p m at the main junction. You will get an SMS with the challan number."
+    ],
+    [
+     "male",
+     "How do I pay the fine?"
+    ],
+    [
+     "female",
+     "Through the official e challan website or at any traffic police station within sixty days. You can also contest it there if you think it is wrong. We do not collect fines on the phone."
+    ]
+   ]
+  }
+ ]
+}

@@ -100,10 +100,10 @@ class GuardSession(
         (finals + listOfNotNull(partial.takeIf { it.isNotEmpty() })).joinToString("\n")
 
     private fun redacted(): PiiRedactor.Result {
-        // Redact line by line so line breaks (pauses between speakers) survive for the judge.
-        val parts = transcript().split("\n").map { PiiRedactor.redact(it) }
-        if (parts.any { it.codeSpoken }) codeSpoken = true
-        return PiiRedactor.Result(parts.joinToString("\n") { it.text }, codeSpoken)
+        // The whole call at once, so a code read out across a pause is still caught.
+        val r = PiiRedactor.redact(transcript())
+        if (r.codeSpoken) codeSpoken = true
+        return PiiRedactor.Result(r.text, codeSpoken)
     }
 
     private fun publishHeard() {
@@ -132,7 +132,8 @@ class GuardSession(
         when (val out = judge(Tier.FAST, r.text)) {
             is JudgeOutcome.Ok -> {
                 val score = apply(out.verdict)
-                maybeDeep(score, out.verdict.probability.toDouble())
+                // "Still listening" is not a reason to wake the deep model.
+                if (out.verdict.confidence != "low") maybeDeep(score, out.verdict.probability.toDouble())
             }
             JudgeOutcome.NoVerdict -> Unit
             is JudgeOutcome.Failed -> ui.update { it.copy(problem = out.userMessage) }

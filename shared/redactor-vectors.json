@@ -106,5 +106,23 @@
     "in": "nine to ate one five",
     "out": "[5-DIGIT NUMBER]",
     "codeSpoken": true
+  },
+  {
+    "name": "a code read out with a pause in the middle (two recognised lines)",
+    "in": "okay it is four eight two\nnine one three\nthank you",
+    "out": "okay it is [6-DIGIT NUMBER]\nthank you",
+    "codeSpoken": true
+  },
+  {
+    "name": "line breaks survive when nothing is redacted",
+    "in": "hello\ni have two parcels\nfor you",
+    "out": "hello\ni have two parcels\nfor you",
+    "codeSpoken": false
+  },
+  {
+    "name": "a pause after a short run does not swallow the next line",
+    "in": "press one two\nthree cheers for you",
+    "out": "press one two\nthree cheers for you",
+    "codeSpoken": false
   }
 ]

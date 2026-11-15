@@ -8,6 +8,7 @@ const SOUND_ALIKES = new Set(['for', 'to', 'too', 'ate', 'won']);
 const MULTIPLIERS = { double: 2, triple: 3 };
 const ID_RE = /[A-Za-z0-9._+-]+@[A-Za-z0-9.-]+/g;
 const DIGIT_RUN_RE = /\d(?:[ -]?\d){3,}/g;
+const PAUSE = '\n';
 
 const label = (n) => `[${n}-DIGIT NUMBER]`;
 const isCodeLength = (n) => n >= 4 && n <= 8;
@@ -24,30 +25,34 @@ export function redact(text) {
   });
 
   // Spoken digits: the speech engine writes "four eight two nine", never "4829".
-  const tokens = out.split(/\s+/).filter((t) => t.length > 0);
+  // A line break is a pause in speech. People pause while reading out a code, so a run of
+  // digits may continue across one; the break itself is kept wherever nothing was removed.
+  const tokens = out.replace(/\n/g, ' \n ').split(/[ \t\r]+/).filter((t) => t.length > 0);
   const result = [];
   let i = 0;
   while (i < tokens.length) {
     let j = i;
+    let end = i;
     let digits = 0;
     let real = 0;
     while (j < tokens.length) {
+      if (tokens[j] === PAUSE) { if (digits === 0) break; j += 1; continue; }
       const w = bare(tokens[j]);
-      if (DIGIT_WORDS.has(w)) { digits += 1; real += 1; j += 1; continue; }
-      if (SOUND_ALIKES.has(w)) { digits += 1; j += 1; continue; }
+      if (DIGIT_WORDS.has(w)) { digits += 1; real += 1; j += 1; end = j; continue; }
+      if (SOUND_ALIKES.has(w)) { digits += 1; j += 1; end = j; continue; }
       if (MULTIPLIERS[w] && j + 1 < tokens.length && DIGIT_WORDS.has(bare(tokens[j + 1]))) {
-        digits += MULTIPLIERS[w]; real += 1; j += 2; continue;
+        digits += MULTIPLIERS[w]; real += 1; j += 2; end = j; continue;
       }
       break;
     }
     if (digits >= 4 && real >= 3) {
       if (isCodeLength(digits)) codeSpoken = true;
       result.push(label(digits));
-      i = j;
+      i = end;
     } else {
       result.push(tokens[i]);
       i += 1;
     }
   }
-  return { text: result.join(' '), codeSpoken };
+  return { text: result.join(' ').replace(/ ?\n ?/g, '\n'), codeSpoken };
 }

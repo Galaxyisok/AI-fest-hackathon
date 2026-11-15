@@ -81,5 +81,8 @@ class SharedVectorsTest {
         assertThrows(IllegalArgumentException::class.java) {
             VulnerabilityProfile.fromJson("""{"version":1,"userType":"student","threats":[{"type":"romance","level":"high","why":"x"}]}""")
         }
+        assertThrows(IllegalArgumentException::class.java) {
+            VulnerabilityProfile.fromJson("""{"version":1,"userType":"student","threats":[{"type":"kyc_bank","level":"high","why":"x"},{"type":"kyc_bank","level":"low","why":"y"}]}""")
+        }
     }
 }

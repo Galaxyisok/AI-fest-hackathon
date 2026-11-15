@@ -5,7 +5,7 @@ package com.scamguard.judge
  * The judge still sees that a number was said and how long it was (a 6-digit number after
  * "tell me the code" is the scam signal) but never the digits themselves.
  *
- * Mirrored by eval/lib/redactor.mjs; both run against shared/redactor-vectors.json.
+ * Mirrored by proxy/lib/redactor.mjs; both run against shared/redactor-vectors.json.
  */
 object PiiRedactor {
 
@@ -18,7 +18,9 @@ object PiiRedactor {
     private val ID_RE = Regex("[A-Za-z0-9._+-]+@[A-Za-z0-9.-]+")
     private val DIGIT_RUN_RE = Regex("\\d(?:[ -]?\\d){3,}")
     private val TRAILING_PUNCT = Regex("[.,?!;:]+$")
-    private val WHITESPACE = Regex("\\s+")
+    private val SPACES = Regex("[ \\t\\r]+")
+    private val AROUND_PAUSE = Regex(" ?\\n ?")
+    private const val PAUSE = "\n"
 
     private fun label(n: Int) = "[$n-DIGIT NUMBER]"
     private fun isCodeLength(n: Int) = n in 4..8
@@ -35,32 +37,36 @@ object PiiRedactor {
         }
 
         // Spoken digits: the speech engine writes "four eight two nine", never "4829".
-        val tokens = out.split(WHITESPACE).filter { it.isNotEmpty() }
+        // A line break is a pause in speech. People pause while reading out a code, so a run of
+        // digits may continue across one; the break itself is kept wherever nothing was removed.
+        val tokens = out.replace(PAUSE, " $PAUSE ").split(SPACES).filter { it.isNotEmpty() }
         val result = ArrayList<String>(tokens.size)
         var i = 0
         while (i < tokens.size) {
             var j = i
+            var end = i
             var digits = 0
             var real = 0
             while (j < tokens.size) {
+                if (tokens[j] == PAUSE) { if (digits == 0) break; j += 1; continue }
                 val w = bare(tokens[j])
-                if (w in DIGIT_WORDS) { digits += 1; real += 1; j += 1; continue }
-                if (w in SOUND_ALIKES) { digits += 1; j += 1; continue }
+                if (w in DIGIT_WORDS) { digits += 1; real += 1; j += 1; end = j; continue }
+                if (w in SOUND_ALIKES) { digits += 1; j += 1; end = j; continue }
                 val mult = MULTIPLIERS[w]
                 if (mult != null && j + 1 < tokens.size && bare(tokens[j + 1]) in DIGIT_WORDS) {
-                    digits += mult; real += 1; j += 2; continue
+                    digits += mult; real += 1; j += 2; end = j; continue
                 }
                 break
             }
             if (digits >= 4 && real >= 3) {
                 if (isCodeLength(digits)) codeSpoken = true
                 result.add(label(digits))
-                i = j
+                i = end
             } else {
                 result.add(tokens[i])
                 i += 1
             }
         }
-        return Result(result.joinToString(" "), codeSpoken)
+        return Result(result.joinToString(" ").replace(AROUND_PAUSE, PAUSE), codeSpoken)
     }
 }

@@ -65,7 +65,7 @@ def main() -> None:
         ref = words(" ".join(text for _, text in call["lines"]))
         hyp = words(" ".join(lines))
         row = {"id": call.get("id", call["file"]), "file": call["file"], "label": call["label"],
-               "category": call.get("category"), "wer": round(wer(ref, hyp), 3), "stt_lines": lines}
+               "category": call.get("category"), "prior": call.get("prior", {}), "wer": round(wer(ref, hyp), 3), "stt_lines": lines}
         rows.append(row)
         print(f"{call['file']}: WER {row['wer']:.0%}, {len(hyp)} words")
     out.parent.mkdir(parents=True, exist_ok=True)
