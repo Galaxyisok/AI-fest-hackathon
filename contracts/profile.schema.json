@@ -1,0 +1,79 @@
+{
+  "$defs": {
+    "Threat": {
+      "additionalProperties": false,
+      "properties": {
+        "type": {
+          "enum": [
+            "digital_arrest",
+            "kyc_bank",
+            "courier_customs",
+            "job_offer",
+            "family_emergency",
+            "loan_app",
+            "sim_swap",
+            "utility_disconnect"
+          ],
+          "title": "Type",
+          "type": "string"
+        },
+        "level": {
+          "enum": [
+            "low",
+            "medium",
+            "high"
+          ],
+          "title": "Level",
+          "type": "string"
+        },
+        "why": {
+          "maxLength": 160,
+          "minLength": 1,
+          "title": "Why",
+          "type": "string"
+        }
+      },
+      "required": [
+        "type",
+        "level",
+        "why"
+      ],
+      "title": "Threat",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": 1,
+      "title": "Version",
+      "type": "integer"
+    },
+    "userType": {
+      "enum": [
+        "student",
+        "parent",
+        "senior",
+        "professional"
+      ],
+      "title": "Usertype",
+      "type": "string"
+    },
+    "threats": {
+      "items": {
+        "$ref": "#/$defs/Threat"
+      },
+      "maxItems": 8,
+      "minItems": 1,
+      "title": "Threats",
+      "type": "array"
+    }
+  },
+  "required": [
+    "version",
+    "userType",
+    "threats"
+  ],
+  "title": "Profile",
+  "type": "object"
+}
