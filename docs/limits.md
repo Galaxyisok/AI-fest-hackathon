@@ -37,7 +37,11 @@ Said plainly, because the brief asks for it and a judge will find these anyway.
 
 ## Phase 1
 
-- The profile screen in this branch is a placeholder with four hand-written sample profiles. The AI-driven version is Phase 1's work.
+- The profile is made by the Phase 1 backend (`backend/`, Python) and Claude Haiku. It has been exercised from the app against the real HTTP server with a canned analyzer, **not yet with the live model**.
+- It is a second server to run or deploy, separate from the call-judge proxy (`proxy/`, Node).
+- Phase 1 as delivered is profile-building only. The "train the user with simulated scams" half of the original idea is not built.
+- The backend pins `claude-haiku-4-5-20251001`. Do not point it at Haiku 5.5 without a code change: it rejects any reply that is not exactly one text block, and newer models add a thinking block.
+- Its rate limit is one global counter (30 a minute for everyone), so one noisy client can lock out all users.
 
 ## Abuse resistance
 

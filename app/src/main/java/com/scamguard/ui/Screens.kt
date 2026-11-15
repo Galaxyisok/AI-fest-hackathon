@@ -377,6 +377,16 @@ fun SetupScreen(onBack: () -> Unit) {
         // For the team, not for ordinary users: where the checking service lives.
         var url by remember { mutableStateOf("") }
         val saved by remember { ProfileRepository(context).judgeUrlFlow }.collectAsState(initial = null)
+        var p1 by remember { mutableStateOf("") }
+        val savedP1 by remember { ProfileRepository(context).phase1UrlFlow }.collectAsState(initial = null)
+        InfoCard {
+            Body("For the team: profile service address", bold = true)
+            Body("Now using: ${savedP1 ?: BuildConfig.PHASE1_URL}", color = Neutral)
+            OutlinedTextField(value = p1, onValueChange = { p1 = it }, singleLine = true, label = { Text("https://…/v1/onboarding/profile") }, modifier = Modifier.fillMaxWidth())
+            OutlinedButton(onClick = { scope.launch { ProfileRepository(context).setPhase1Url(p1); p1 = "" } }) {
+                Text(if (p1.isBlank()) "Reset to built-in address" else "Save address", fontSize = 16.sp)
+            }
+        }
         InfoCard {
             Body("For the team: checking service address", bold = true)
             Body("Now using: ${saved ?: BuildConfig.JUDGE_URL}", color = Neutral)
@@ -419,12 +429,15 @@ fun PrivacyScreen(onBack: () -> Unit) {
             Body("Never kept", bold = true)
             Body("• The sound of your calls. It is turned into text on your phone and discarded straight away.")
             Body("• The text of your calls. It lives in memory during the call and is gone when the call ends.")
+            Body("• Your answers to the profile questions. Only the result is kept.")
             Body("• Phone numbers, your contacts, your call history.")
             Body("• Any OTP, PIN, card or Aadhaar number. This app never asks for them.")
         }
         InfoCard {
             Body("What leaves the phone", bold = true)
-            Body("Only the text of the call, with every number and ID already removed, is sent to an AI service that judges it. The service keeps no copy. Your voice never leaves the phone.")
+            Body("During a call: only the text of the call, with every number and ID already removed, is sent to an AI service that judges it. Your voice never leaves the phone.")
+            Body("When you make your scam profile: the choices you tap are sent once to an AI service. They are not saved on this phone or on our servers.")
+            Body("The AI service is Claude, made by Anthropic. Our own servers keep no copy of anything.")
         }
         OutlinedButton(onClick = { scope.launch { ProfileRepository(context).clear() } }, modifier = Modifier.fillMaxWidth()) {
             Text("Delete my scam profile", fontSize = 17.sp)

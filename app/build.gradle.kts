@@ -27,6 +27,9 @@ android {
         // Default judge endpoint. Emulator -> host machine is 10.0.2.2. Override: -PjudgeUrl=https://<proxy>/api/judge
         val judgeUrl = (project.findProperty("judgeUrl") as String?) ?: "http://10.0.2.2:8787/api/judge"
         buildConfigField("String", "JUDGE_URL", "\"$judgeUrl\"")
+        // Phase 1 onboarding backend (Python, see backend/). Override: -Pphase1Url=https://<host>/v1/onboarding/profile
+        val phase1Url = (project.findProperty("phase1Url") as String?) ?: "http://10.0.2.2:8000/v1/onboarding/profile"
+        buildConfigField("String", "PHASE1_URL", "\"$phase1Url\"")
         ndk { abiFilters += listOf("arm64-v8a", "armeabi-v7a", "x86_64") }
     }
 

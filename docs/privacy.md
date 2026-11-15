@@ -10,6 +10,7 @@
 | Emails and UPI IDs | Replaced by `[ID]` | Never | Never |
 | Caller's phone number | Seen by the caller check while the phone rings; reduced to three yes/no facts (international, hidden, unverified) | Only those three flags | Never. Not logged. |
 | Contacts, call log | Not requested. Android itself only shows us numbers that are not in the contacts. | n/a | n/a |
+| Answers to the profile questions (Phase 1) | Tap-only choices such as age band and activities; no free text, no name, number or ID. Held in memory, cleared the moment they are sent. | Once, to the Phase 1 backend, which passes them to Claude Haiku and keeps nothing | Never, on the phone or the server |
 | Scam profile from Phase 1 | Scam types, levels, a short reason | Types and levels only. The reason text stays on the phone. | Yes, on the phone (this is the app's only personal data). One tap deletes it. |
 | "This was wrong" taps | A counter | No | A single number on the phone |
 
@@ -31,7 +32,9 @@ Not requested: contacts, call log, phone state, SMS, storage, location, overlay.
 
 ## What the third party sees
 
-The judge is Anthropic's Claude (Haiku 5.5 and Sonnet 5.5), reached through our own proxy. It receives: the redacted transcript, the profile's scam types and levels, and the three caller flags. It does not receive audio, any number, the user's identity or an identifier for the phone. Speech recognition (Vosk) runs on the phone and contacts no server.
+Anthropic receives data at two points, both through our own servers and never directly from the phone. Phase 1 sends the tap-only onboarding answers to Claude Haiku once, after the user has agreed on a screen that says so. What Anthropic retains is governed by the API account's data-retention settings, not by our code, so we do not claim "nothing is retained by the provider" unless that account setting has been checked.
+
+The call judge is Anthropic's Claude (Haiku 5.5 and Sonnet 5.5), reached through our own proxy. It receives: the redacted transcript, the profile's scam types and levels, and the three caller flags. It does not receive audio, any number, the user's identity or an identifier for the phone. Speech recognition (Vosk) runs on the phone and contacts no server.
 
 ## How an attacker could not abuse this tool
 

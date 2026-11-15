@@ -1,0 +1,15 @@
+{
+  "_note": "Exactly what the Android app sends as `answers`. The Kotlin test asserts OnboardingAnswers.toJson() produces these; tests/test_android_contract.py asserts the Phase 1 backend accepts them. If either side changes its enums, one of the two fails.",
+  "minimal": { "userType": "senior" },
+  "full": {
+    "userType": "student",
+    "ageBand": "18_29",
+    "livingSituation": "with_others",
+    "employment": "seeking_work",
+    "digitalConfidence": "medium",
+    "bankAppUsage": "multiple",
+    "activities": ["job_search", "online_shopping", "social_media"],
+    "concerns": ["digital_arrest", "job_offer"],
+    "priorScamExposure": "prefer_not_to_say"
+  }
+}

@@ -6,7 +6,7 @@ Everything here is either implemented in this branch or marked as pending. Numbe
 
 - **Threat:** scam calls that impersonate police, banks, couriers, employers or relatives to take money, OTPs or control of the phone.
 - **User:** people who answer unknown numbers; personalised by a scam profile (student, parent, senior, professional).
-- **Stage: DURING the attack.** (Phase 1 covers *before*: it works out which scams you are exposed to and trains you. Core for judging: *during*.)
+- **Stage: DURING the attack.** (Phase 1 covers *before*: tap-only questions, then Claude Haiku works out which scams you are exposed to. Core for judging: *during*.)
 - One line: *"A second pair of ears on the call, which tells you the odds while you can still hang up."*
 - Demo opens with: the fake-police parcel call.
 

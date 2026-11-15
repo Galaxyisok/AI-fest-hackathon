@@ -17,8 +17,8 @@ private val Context.store by preferencesDataStore(name = "scamguard")
  *     ProfileRepository(context).save(profile)   // Phase 1, after its analysis
  *     ProfileRepository(context).load()          // Phase 2, when a call starts
  *
- * Everything this app keeps on disk is in this one small store: the derived profile, the judge
- * address, and a count of "this was wrong" taps. No transcripts, no audio, no phone numbers.
+ * Everything this app keeps on disk is in this one small store: the derived profile, the two service
+ * addresses, and a count of "this was wrong" taps. No transcripts, no audio, no phone numbers.
  */
 class ProfileRepository(context: Context) {
     private val store = context.applicationContext.store
@@ -42,12 +42,18 @@ class ProfileRepository(context: Context) {
         store.edit { if (url.isNullOrBlank()) it.remove(JUDGE_URL) else it[JUDGE_URL] = url.trim() }
     }
 
+    val phase1UrlFlow: Flow<String?> = store.data.map { it[PHASE1_URL] }
+    suspend fun setPhase1Url(url: String?) {
+        store.edit { if (url.isNullOrBlank()) it.remove(PHASE1_URL) else it[PHASE1_URL] = url.trim() }
+    }
+
     val wrongCountFlow: Flow<Int> = store.data.map { it[WRONG_COUNT] ?: 0 }
     suspend fun countWrong() { store.edit { it[WRONG_COUNT] = (it[WRONG_COUNT] ?: 0) + 1 } }
 
     private companion object {
         val PROFILE = stringPreferencesKey("profile_json")
         val JUDGE_URL = stringPreferencesKey("judge_url")
+        val PHASE1_URL = stringPreferencesKey("phase1_url")
         val WRONG_COUNT = intPreferencesKey("wrong_count")
     }
 }

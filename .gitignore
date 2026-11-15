@@ -15,3 +15,9 @@ keystore.properties
 app/src/main/assets/model-en-us/
 eval/.cache/
 eval/audio/*.wav
+
+# Phase 1 backend (Python)
+.venv/
+__pycache__/
+.pytest_cache/
+*.pyc

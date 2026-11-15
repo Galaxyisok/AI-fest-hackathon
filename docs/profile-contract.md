@@ -34,7 +34,7 @@ Phase 1 code lives in `app/src/main/java/com/scamguard/phase1/`. Replace the bod
 | `userType` | `student`, `parent`, `senior`, `professional` |
 | `threats[].type` | `digital_arrest`, `kyc_bank`, `courier_customs`, `job_offer`, `family_emergency`, `loan_app`, `sim_swap`, `utility_disconnect` |
 | `threats[].level` | `low`, `medium`, `high` |
-| `threats[].why` | One plain-English line, up to 200 characters. Shown to the user. **Never sent off the phone.** |
+| `threats[].why` | One plain-English line. The Phase 1 backend writes at most 160 characters; the app accepts up to 200. Shown to the user. **Never sent on from the phone.** |
 
 In Kotlin this is `VulnerabilityProfile(userType, threats)` with `Threat(type, level, why)`; the enums are `UserType`, `ThreatType`, `Level`. `VulnerabilityProfile.fromJson()` throws `IllegalArgumentException` with a readable message if a value is outside the table. A type may appear at most once; leave out types that do not apply.
 
@@ -55,6 +55,20 @@ Phase 2 keys off the `type` strings. **Ask before adding or renaming one.**
 - The pre-answer notification names the user's `high` threats ("Watch out for fake police calls").
 - With no profile saved, Phase 2 still works; it just has no personal nudge.
 
-## Until Phase 1 lands
+## How the two halves are joined (since the `phase-1` branch was merged)
 
-`Phase1Screen.kt` saves one of four hand-written sample profiles so Phase 2 can be built and demoed. `VulnerabilityProfile.MOCK` is the student sample and is what the demo calls fall back to on a fresh install.
+```
+Phase1Screen (Compose, tap-only questions)
+  -> OnboardingAnswers.toJson()                      app/.../phase1/OnboardingAnswers.kt
+  -> OnboardingClient.generate()   POST /v1/onboarding/profile     (the Phase 1 client, package-adapted)
+  -> backend/ (FastAPI) -> Claude Haiku -> profile JSON            (the Phase 1 server, unchanged)
+  -> VulnerabilityProfile.fromJson()  strict                       (shared)
+  -> ProfileRepository.save()                                      (shared)
+```
+
+The machine-readable side of this contract is `contracts/profile.schema.json` and `contracts/openapi.json` from Phase 1. Tests hold the two halves together, and each fails if either side changes an enum or a field:
+
+- `app/src/test/.../OnboardingContractTest.kt` reads those two files and compares them with the Kotlin enums and with every choice the screen offers.
+- `shared/onboarding-request-vectors.json` is the exact request body; the Kotlin test checks the app produces it and `tests/test_android_contract.py` checks the backend accepts it.
+
+Sample profiles (hand-written, no AI) remain behind a "For demos" link on the profile screen, and `VulnerabilityProfile.MOCK` is what the demo calls fall back to on a fresh install.
