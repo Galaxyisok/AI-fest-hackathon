@@ -1,0 +1,14 @@
+{
+  "name": "scamguard-judge-proxy",
+  "private": true,
+  "type": "module",
+  "engines": { "node": ">=20" },
+  "scripts": {
+    "dev": "node local.mjs",
+    "dev:mock": "JUDGE_BACKEND=mock node local.mjs",
+    "test": "node --test lib"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^1.8.0"
+  }
+}

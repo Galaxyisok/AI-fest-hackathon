@@ -1,0 +1,16 @@
+.gradle/
+build/
+local.properties
+*.iml
+.idea/
+.kotlin/
+node_modules/
+.vercel/
+.env
+.env.*
+*.jks
+*.keystore
+keystore.properties
+# Vosk model is fetched by `gradlew downloadVoskModel` (runs automatically before a build)
+app/src/main/assets/model-en-us/
+eval/.cache/

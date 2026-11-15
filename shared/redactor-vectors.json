@@ -1,0 +1,16 @@
+[
+  { "name": "plain speech untouched", "in": "hello this is the courier office calling about your parcel", "out": "hello this is the courier office calling about your parcel", "codeSpoken": false },
+  { "name": "digit otp", "in": "the code is 482913 ok", "out": "the code is [6-DIGIT NUMBER] ok", "codeSpoken": true },
+  { "name": "spoken otp (what the speech engine actually emits)", "in": "yes the otp is four eight two nine one three", "out": "yes the otp is [6-DIGIT NUMBER]", "codeSpoken": true },
+  { "name": "aadhaar with spaces", "in": "my aadhaar is 1234 5678 9012", "out": "my aadhaar is [12-DIGIT NUMBER]", "codeSpoken": false },
+  { "name": "card with dashes", "in": "card 4111-1111-1111-1111 expiry", "out": "card [16-DIGIT NUMBER] expiry", "codeSpoken": false },
+  { "name": "double and triple", "in": "nine double eight triple one two", "out": "[7-DIGIT NUMBER]", "codeSpoken": true },
+  { "name": "oh as zero", "in": "pin is one oh oh four", "out": "pin is [4-DIGIT NUMBER]", "codeSpoken": true },
+  { "name": "short runs are ordinary speech", "in": "give me one moment i have two parcels and three forms", "out": "give me one moment i have two parcels and three forms", "codeSpoken": false },
+  { "name": "three spoken digits kept", "in": "press one two three", "out": "press one two three", "codeSpoken": false },
+  { "name": "small amounts kept so the judge can see money talk", "in": "pay 500 rupees now", "out": "pay 500 rupees now", "codeSpoken": false },
+  { "name": "email and upi id", "in": "send it to ravi.k@okaxis and mail me at a.b@gmail.com", "out": "send it to [ID] and mail me at [ID]", "codeSpoken": false },
+  { "name": "case insensitive", "in": "Four Eight Two Nine", "out": "[4-DIGIT NUMBER]", "codeSpoken": true },
+  { "name": "phone number is not flagged as a code", "in": "call me on nine eight four eight zero two two three three eight", "out": "call me on [10-DIGIT NUMBER]", "codeSpoken": false },
+  { "name": "two separate runs", "in": "code four four one two and pin 9981", "out": "code [4-DIGIT NUMBER] and pin [4-DIGIT NUMBER]", "codeSpoken": true }
+]
