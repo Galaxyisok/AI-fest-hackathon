@@ -28,6 +28,11 @@ const here = (p) => new URL(p, import.meta.url);
 const PRICE = { 'claude-haiku-5-5': [0.10, 0.50], 'claude-sonnet-5-5': [2.00, 10.00] };
 const WORDS_PER_SECOND = 2.5;   // ordinary speech, to turn "words so far" into "seconds into the call"
 const MIN_WORDS = 8;            // same as GuardSession.MIN_WORDS
+const SHOW_UNSURE_WORDS = 30;   // same as GuardSession.SHOW_UNSURE_WORDS
+const UNSURE_CAP = 45;          // same as GuardSession.UNSURE_CAP
+// Mirror of GuardSession.asUnsureEstimate: an unsure verdict is shown, capped below red, once enough was said.
+const shown = (v, words, seen) => (v.confidence === 'low' && !seen && words >= SHOW_UNSURE_WORDS)
+  ? { ...v, confidence: 'medium', scam_probability: Math.min(v.scam_probability, UNSURE_CAP) } : v;
 
 // One fixed profile for every call, so a difference between runs is a difference between models.
 const PROFILE = {
@@ -103,6 +108,7 @@ async function replay(item) {
   const trace = [];
   let last = { display: null, band: 'listening', raw: null };
   let reason = '';
+  let seen = false;   // a confident verdict has arrived
 
   for (let i = 0; i < item.lines.length; i++) {
     const soFar = redact(item.lines.slice(0, i + 1).join('\n')).text;   // the whole call at once, as the app does
@@ -113,8 +119,8 @@ async function replay(item) {
     if (MODE === 'cascade') {
       const fast = await callJudge('fast', soFar, item.prior);
       if (fast) {
-        last = fusion.update(toFusion(fast, 'fast'));
-        if (fast.confidence !== 'low') reason = fast.reason;
+        last = fusion.update(toFusion(shown(fast, words, seen), 'fast'));
+        if (fast.confidence !== 'low') { reason = fast.reason; seen = true; }
         if (fast.confidence !== 'low' && policy.shouldRunDeep(nowMs, last.raw, fast.scam_probability)) {
           policy.onDeepStarted(nowMs, fast.scam_probability);
           const deep = await callJudge('deep', soFar, item.prior);
@@ -124,7 +130,7 @@ async function replay(item) {
     } else {
       // Single-model modes: that model is the only judge, so its verdicts enter the maths un-blended.
       const v = await callJudge(MODE === 'sonnet' ? 'deep' : 'fast', soFar, item.prior);
-      if (v) { last = fusion.update(toFusion(v, 'fast')); if (v.confidence !== 'low') reason = v.reason; }
+      if (v) { last = fusion.update(toFusion(shown(v, words, seen), 'fast')); if (v.confidence !== 'low') { reason = v.reason; seen = true; } }
     }
     trace.push({ turn: i + 1, words, fraction: words / totalWords, seconds: words / WORDS_PER_SECOND, display: last.display, band: last.band });
   }

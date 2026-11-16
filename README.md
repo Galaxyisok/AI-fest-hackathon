@@ -94,7 +94,7 @@ docs/       profile-contract.md, threat-model.md, privacy.md, limits.md, slides-
 | Anthropic Claude Haiku 5.5 and Sonnet 5.5 (API) | The call judge | Commercial API |
 | Anthropic Claude Haiku 5.5 (API) | Phase 1 profile building | Commercial API |
 | FastAPI, Pydantic, httpx, uvicorn | Phase 1 backend | MIT / BSD |
-| [Vosk](https://alphacephei.com/vosk/) and `vosk-model-small-en-us-0.15` | On-device speech-to-text | Apache-2.0 |
+| [Vosk](https://alphacephei.com/vosk/) and `vosk-model-small-en-in-0.4` (Indian English) | On-device speech-to-text | Apache-2.0 |
 | JNA | Required by Vosk | Apache-2.0 / LGPL |
 | Jetpack Compose, AndroidX, Kotlin coroutines | App | Apache-2.0 |
 | `@anthropic-ai/sdk` | Proxy | MIT |

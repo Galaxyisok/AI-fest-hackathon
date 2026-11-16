@@ -19,7 +19,7 @@ sealed interface SttEvent {
 }
 
 /**
- * Speech-to-text that runs entirely on the phone (Vosk, small English model, Apache-2.0).
+ * Speech-to-text that runs entirely on the phone (Vosk, small Indian-English model, Apache-2.0).
  * This is why audio never has to leave the device.
  */
 object VoskEngine {
@@ -32,7 +32,7 @@ object VoskEngine {
     suspend fun model(context: Context): Model = lock.withLock {
         model ?: suspendCancellableCoroutine<Model> { cont ->
             StorageService.unpack(
-                context.applicationContext, "model-en-us", "model",
+                context.applicationContext, "model-en-in", "model",
                 { m -> cont.resume(m) },
                 { e -> cont.resumeWithException(e) },
             )

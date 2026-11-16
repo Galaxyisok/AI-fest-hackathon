@@ -168,3 +168,102 @@ Genuine calls shown amber: t-g02 (bank_block_notice, peak 30%); t-g03 (kyc_remin
 Missed scams: none
 False alarms: none
 Genuine calls shown amber: t-g03 (kyc_reminder, peak 45%); t-g04 (loan_reminder, peak 30%); t-g07 (customs_real, peak 45%); t-g19 (police_verification, peak 55%)
+
+## test set, mode: cascade (2026-11-16 17:13 UTC)
+
+26 scam calls, 26 genuine calls. "Alarm" = the meter reached red (>= 60%) at any point in the call.
+
+|                    | Alarm raised | No alarm |
+|--------------------|-------------:|---------:|
+| **Scam call**      | 26 caught | 0 missed |
+| **Genuine call**   | 1 false alarm | 25 left alone |
+
+| Measure | Value |
+|---|---|
+| Scams caught (recall) | 26/26 = 100% |
+| Alarms that were right (precision) | 26/27 = 96% |
+| Genuine calls wrongly alarmed (false-alarm rate) | 1/26 = 4% |
+| Scams that got at least a "be careful" (amber or red) | 26/26 = 100% |
+| Genuine calls that got a "be careful" or worse | 10/26 = 38% |
+| Median point of the alarm | turn 3, 56% of the way through the call, about 20 s in |
+| Judge calls | claude-haiku-5-5 x272, claude-sonnet-5-5 x69 |
+| Median judge response time | fast 2594 ms, deep 2908 ms |
+| Verdicts unavailable (declined or cut off) | 0 |
+| API cost of this run | $0.342 |
+
+Missed scams: none
+False alarms: t-g10 (family, peak 70%)
+Genuine calls shown amber: t-g01 (bank_transaction_check, peak 30%); t-g02 (bank_block_notice, peak 45%); t-g03 (kyc_reminder, peak 35%); t-g04 (loan_reminder, peak 30%); t-g07 (customs_real, peak 45%); t-g18 (utility_real, peak 45%); t-g19 (police_verification, peak 45%); t-g20 (police_verification, peak 30%); t-g25 (landlord, peak 30%)
+
+## audio set, mode: cascade (2026-11-16 17:34 UTC)
+
+5 scam calls, 5 genuine calls. "Alarm" = the meter reached red (>= 60%) at any point in the call.
+
+|                    | Alarm raised | No alarm |
+|--------------------|-------------:|---------:|
+| **Scam call**      | 5 caught | 0 missed |
+| **Genuine call**   | 1 false alarm | 4 left alone |
+
+| Measure | Value |
+|---|---|
+| Scams caught (recall) | 5/5 = 100% |
+| Alarms that were right (precision) | 5/6 = 83% |
+| Genuine calls wrongly alarmed (false-alarm rate) | 1/5 = 20% |
+| Scams that got at least a "be careful" (amber or red) | 5/5 = 100% |
+| Genuine calls that got a "be careful" or worse | 5/5 = 100% |
+| Median point of the alarm | turn 3, 44% of the way through the call, about 20 s in |
+| Judge calls | claude-haiku-5-5 x88, claude-sonnet-5-5 x26 |
+| Median judge response time | fast 2635 ms, deep 3027 ms |
+| Verdicts unavailable (declined or cut off) | 0 |
+| API cost of this run | $0.143 |
+
+Missed scams: none
+False alarms: t-g19 (police_verification, peak 65%)
+Genuine calls shown amber: t-g01 (bank_transaction_check, peak 35%); t-g03 (kyc_reminder, peak 45%); t-g04 (loan_reminder, peak 45%); t-g07 (customs_real, peak 40%)
+
+## audio set, mode: cascade (2026-11-16 17:36 UTC)
+
+5 scam calls, 5 genuine calls. "Alarm" = the meter reached red (>= 60%) at any point in the call.
+
+|                    | Alarm raised | No alarm |
+|--------------------|-------------:|---------:|
+| **Scam call**      | 5 caught | 0 missed |
+| **Genuine call**   | 1 false alarm | 4 left alone |
+
+| Measure | Value |
+|---|---|
+| Scams caught (recall) | 5/5 = 100% |
+| Alarms that were right (precision) | 5/6 = 83% |
+| Genuine calls wrongly alarmed (false-alarm rate) | 1/5 = 20% |
+| Scams that got at least a "be careful" (amber or red) | 5/5 = 100% |
+| Genuine calls that got a "be careful" or worse | 5/5 = 100% |
+| Median point of the alarm | turn 5, 43% of the way through the call, about 20 s in |
+| Judge calls | claude-haiku-5-5 x100, claude-sonnet-5-5 x23 |
+| Median judge response time | fast 2473 ms, deep 2840 ms |
+| Verdicts unavailable (declined or cut off) | 0 |
+| API cost of this run | $0.116 |
+
+Missed scams: none
+False alarms: t-g03 (kyc_reminder, peak 60%)
+Genuine calls shown amber: t-g01 (bank_transaction_check, peak 30%); t-g04 (loan_reminder, peak 30%); t-g07 (customs_real, peak 45%); t-g19 (police_verification, peak 55%)
+
+## Real-phone iteration (2026-11-16, app 0.4)
+
+Two problems seen on real phones: the meter stayed on "Listening" for whole calls, and the transcript was poor.
+
+**Meter.** Server logs showed 79 successful judge calls from two phones with no number ever shown. The app hid every "low confidence" verdict, and the judge says "low" for as long as a call has no clear purpose. Now, once 30 words have been heard and no confident verdict has arrived, the estimate is shown anyway, capped at 45 (below red), so an unsure guess can say "looks normal" or "be careful" but never "likely a scam". Re-run with this rule (same synthetic sets): dev 10/10 caught, 0/10 false alarms; held-out test 26/26 caught, 1/26 false alarms (t-g10, as before).
+
+**Speech recognition.** Measured on 150 real Indian-English recordings (Svarah, AI4Bharat, human transcripts; about 20 minutes; `eval/stt_bench.py`). Word error rate:
+
+| Audio | en-US small 0.15 (was shipped) | en-IN small 0.4 | en-IN + level control (now shipped) |
+|---|---|---|---|
+| Clean | 45.5% | 35.7% | n/a |
+| Phone band + noise | 75.2% | 63.3% | 59.1% |
+| Phone band, 20 dB quieter | 83.4% | 91.4% | 65.7% |
+
+On the project's own synthetic audio: demo clips 13.6% -> 8.3%, held-out audio subset 13.3% -> 11.1%.
+Svarah is hard (place names, spontaneous speech) and the phone conditions are simulated, not recorded from a handset; the absolute numbers are poor for both models. The judge is told to read through recognition errors, and a garbled real-phone transcript extended with scam content still scored 92.
+
+**Detector on speech-recognised audio (10 held-out calls), run twice on the same day:** en-IN transcripts 5/5 caught, 1/5 false alarms (t-g19, peak 65); en-US transcripts 5/5 caught, 1/5 false alarms (t-g03, peak 60). The earlier single run reported 0/5. So the false-alarm count on this small audio set moves between 0 and 1 from run to run, on genuine official-sounding calls near the 60 line; it did not change with the speech model. Not tuned on.
+
+Not measured: the level control on a real handset during a real call (unit-tested and benchmarked through a Python mirror only).

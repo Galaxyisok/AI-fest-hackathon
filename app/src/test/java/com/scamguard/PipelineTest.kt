@@ -50,6 +50,40 @@ class PipelineTest {
         assertEquals(Band.LISTENING, ui.value.score.band)
     }
 
+    /** Real phones, 2026-11-16: 79 successful checks and the meter never left "Listening". */
+    @Test fun anUnsureJudgeStillShowsANumberOnceEnoughHasBeenSaid() = runTest {
+        val ui = MutableStateFlow(GuardUi())
+        val s = GuardSession(this, { tier, _ -> JudgeOutcome.Ok(verdict(tier, 20, confidence = "low")) }, null, CallerPrior(), ui, { testScheduler.currentTime })
+        s.onEvent(SttEvent.Final("hello am i speaking with the owner of this mobile number yes who is this"))   // 15 words
+        advanceUntilIdle()
+        assertEquals(Band.LISTENING, ui.value.score.band)            // too early: still no guess
+        s.onEvent(SttEvent.Final("i am calling from the help desk how are you doing today sir is this a good time to talk"))
+        advanceUntilIdle()
+        assertEquals(20, ui.value.score.display)
+        assertEquals(Band.GREEN, ui.value.score.band)
+        assertEquals(GuardSession.UNSURE_REASON, ui.value.reason)
+    }
+
+    @Test fun anUnsureGuessNeverRaisesTheAlarmAndAConfidentVerdictTakesOver() = runTest {
+        val ui = MutableStateFlow(GuardUi())
+        var confident = false
+        val tiers = ArrayList<Tier>()
+        val s = GuardSession(this, { tier, _ ->
+            tiers += tier
+            JudgeOutcome.Ok(if (confident) verdict(tier, 90, reason = "asks for your code") else verdict(tier, 90, confidence = "low"))
+        }, null, CallerPrior(), ui, { testScheduler.currentTime })
+        s.onEvent(SttEvent.Final("one two three four five six seven eight nine ten eleven twelve thirteen fourteen fifteen sixteen".replace(Regex("[a-z]+")) { "word" } + " and many more words were said on this call before anything clear was asked of the person holding it"))
+        advanceUntilIdle()
+        assertEquals(GuardSession.UNSURE_CAP, ui.value.score.display)   // capped: amber at most
+        assertEquals(Band.AMBER, ui.value.score.band)
+        assertEquals(listOf(Tier.FAST), tiers)                           // a guess does not wake the deep model
+        confident = true
+        s.onEvent(SttEvent.Final("now read me the code we sent to your phone"))
+        advanceUntilIdle()
+        assertEquals(Band.RED, ui.value.score.band)
+        assertEquals("asks for your code", ui.value.reason)
+    }
+
     @Test fun digitsNeverReachTheJudgeOrTheScreen() = runTest {
         val sent = ArrayList<String>()
         val ui = MutableStateFlow(GuardUi())
@@ -182,6 +216,35 @@ class PipelineTest {
         assertThrows(IllegalArgumentException::class.java) { CallGuardService.readWavPcm(ByteArrayInputStream(wav(44100, 1, pcm))) }
         assertThrows(IllegalArgumentException::class.java) { CallGuardService.readWavPcm(ByteArrayInputStream(wav(16000, 2, pcm))) }
         assertThrows(IllegalArgumentException::class.java) { CallGuardService.readWavPcm(ByteArrayInputStream(ByteArray(100))) }
+    }
+
+    @Test fun quietSpeechIsTurnedUpAndLoudSpeechAndSilenceAreLeftAlone() {
+        fun chunk(amp: Int) = ByteArray(3200).also { b ->
+            for (i in 0 until 1600) {
+                val v = (amp * kotlin.math.sin(i * 0.3)).toInt()
+                b[2 * i] = (v and 0xff).toByte(); b[2 * i + 1] = ((v shr 8) and 0xff).toByte()
+            }
+        }
+        fun peak(b: ByteArray) = (0 until 1600).maxOf { kotlin.math.abs((b[2 * it].toInt() and 0xff) or (b[2 * it + 1].toInt() shl 8)) }
+
+        val quiet = com.scamguard.stt.GainControl()
+        var last = ByteArray(0)
+        repeat(40) { last = chunk(800); quiet.process(last, last.size) }          // a caller at about -32 dB
+        assertTrue("gain ${quiet.currentGain}", quiet.currentGain > 8.0)
+        assertTrue(peak(last) in 6500..9000)                                        // near a quarter of full scale
+
+        val loud = com.scamguard.stt.GainControl()
+        repeat(40) { last = chunk(20000); loud.process(last, last.size) }
+        assertEquals(1.0, loud.currentGain, 0.001)                                  // never turned down, never clipped
+        assertTrue(peak(last) in 19900..20000)
+
+        val hiss = com.scamguard.stt.GainControl()
+        repeat(40) { last = chunk(60); hiss.process(last, last.size) }              // room noise stays room noise
+        assertEquals(1.0, hiss.currentGain, 0.001)
+
+        // a loud voice right after a quiet one is brought back down within a few chunks, not left clipping
+        repeat(4) { last = chunk(20000); quiet.process(last, last.size) }
+        assertTrue("gain ${quiet.currentGain}", quiet.currentGain < 1.8)
     }
 
     @Test fun digitalSilence() {

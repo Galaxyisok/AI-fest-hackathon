@@ -1,4 +1,4 @@
-"""Run the SAME speech model the app ships (Vosk small en-US 0.15) over WAV files on a laptop.
+"""Run the SAME speech model the app ships (Vosk small en-IN 0.4) over WAV files on a laptop.
 
     python eval/stt_transcribe.py <script.json> <wav_dir> <out.jsonl>
 
@@ -6,7 +6,7 @@ For each call in the script it writes the recognised text (one line per recognis
 exactly what the app would send to the judge before redaction) and the word error rate against
 the script. This is how we measure what speech recognition costs the detector.
 
-Needs: pip install vosk. Model: app/src/main/assets/model-en-us (fetched by the Gradle build).
+Needs: pip install vosk. Model: app/src/main/assets/model-en-in (fetched by the Gradle build).
 """
 import json
 import re
@@ -17,7 +17,7 @@ from pathlib import Path
 from vosk import KaldiRecognizer, Model, SetLogLevel
 
 ROOT = Path(__file__).resolve().parent.parent
-MODEL_DIR = ROOT / "app" / "src" / "main" / "assets" / "model-en-us"
+MODEL_DIR = ROOT / "app" / "src" / "main" / "assets" / "model-en-in"
 
 
 def transcribe(model: Model, wav_path: Path) -> list[str]:

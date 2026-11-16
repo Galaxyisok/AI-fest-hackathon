@@ -22,8 +22,8 @@ android {
         applicationId = "com.scamguard"
         minSdk = 29          // CallScreeningService role API
         targetSdk = 35
-        versionCode = 3
-        versionName = "0.3"
+        versionCode = 4
+        versionName = "0.4"
         // Default judge endpoint. Emulator -> host machine is 10.0.2.2. Override: -PjudgeUrl=https://<proxy>/api/judge
         val judgeUrl = (project.findProperty("judgeUrl") as String?) ?: "http://10.0.2.2:8787/api/judge"
         buildConfigField("String", "JUDGE_URL", "\"$judgeUrl\"")
@@ -81,15 +81,16 @@ dependencies {
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.9.0")
 }
 
-// ---- Vosk English model: fetched once into assets (git-ignored) ----
-val voskModelDir = layout.projectDirectory.dir("src/main/assets/model-en-us")
+// ---- Vosk Indian-English model: fetched once into assets (git-ignored) ----
+// Chosen by measurement on real Indian-English speech (eval/results.md): fewer word errors than the en-US model.
+val voskModelDir = layout.projectDirectory.dir("src/main/assets/model-en-in")
 val downloadVoskModel by tasks.registering {
-    description = "Downloads vosk-model-small-en-us-0.15 (Apache-2.0) into app assets if missing."
+    description = "Downloads vosk-model-small-en-in-0.4 (Apache-2.0) into app assets if missing."
     val out = voskModelDir.asFile
     outputs.upToDateWhen { File(out, "uuid").exists() }
     onlyIf { !File(out, "uuid").exists() }
     doLast {
-        val url = "https://alphacephei.com/vosk/models/vosk-model-small-en-us-0.15.zip"
+        val url = "https://alphacephei.com/vosk/models/vosk-model-small-en-in-0.4.zip"
         logger.lifecycle("Downloading $url")
         out.deleteRecursively(); out.mkdirs()
         ZipInputStream(URI(url).toURL().openStream().buffered()).use { zip ->
@@ -104,7 +105,7 @@ val downloadVoskModel by tasks.registering {
             }
         }
         // StorageService.unpack() reads this file to know when to re-extract.
-        File(out, "uuid").writeText("vosk-model-small-en-us-0.15")
+        File(out, "uuid").writeText("vosk-model-small-en-in-0.4")
     }
 }
 tasks.named("preBuild") { dependsOn(downloadVoskModel) }

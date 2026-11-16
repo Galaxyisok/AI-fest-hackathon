@@ -110,7 +110,15 @@ fun Phase1Screen(onDone: () -> Unit, onLearn: () -> Unit = onDone) {
                     var last: Exception? = null
                     for (u in urls) {
                         url = u
-                        try { return@withContext OnboardingClient(u).generate(body, consent = true) }
+                        try {
+                            return@withContext try {
+                                OnboardingClient(u).generate(body, consent = true)
+                            } catch (e: OnboardingClient.Failure) {
+                                // The AI service sometimes fails once and works on the next try (seen from a real phone: 502).
+                                if (e.status !in 502..504) throw e
+                                OnboardingClient(u).generate(body, consent = true)
+                            }
+                        }
                         catch (e: java.io.IOException) { last = e }
                         catch (e: OnboardingClient.BadAddress) { last = e }
                     }

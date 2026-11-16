@@ -28,6 +28,7 @@ import com.scamguard.judge.CallerPrior
 import com.scamguard.judge.JudgeClient
 import com.scamguard.profile.ProfileRepository
 import com.scamguard.profile.VulnerabilityProfile
+import com.scamguard.stt.GainControl
 import com.scamguard.stt.VoskEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -157,6 +158,7 @@ class CallGuardService : Service() {
             return
         }
         val buf = ByteArray(CHUNK)
+        val level = GainControl()   // the caller's voice comes out of the loudspeaker, much quieter than the owner's
         var lastSound = SystemClock.elapsedRealtime()
         try {
             rec.startRecording()
@@ -171,6 +173,7 @@ class CallGuardService : Service() {
                     if (!isDigitalSilence(buf, n)) lastSound = nowMs
                     val silenced = silencedByPolicy || nowMs - lastSound > 5_000
                     if (silenced != Guard.ui.value.micSilenced) Guard.ui.update { it.copy(micSilenced = silenced) }
+                    level.process(buf, n)   // after the silence check, which must see the untouched samples
                     val event = stt.accept(buf, n)
                     if (event != null) withContext(confined) { session.onEvent(event) }
                 }

@@ -72,6 +72,7 @@ class GuardSession(
     private var fastRunning = false
     private var deepRunning = false
     private var codeSpoken = false
+    private var confidentSeen = false
 
     fun onEvent(e: SttEvent) {
         when (e) {
@@ -131,7 +132,8 @@ class GuardSession(
         judgedWords = words
         when (val out = judge(Tier.FAST, r.text)) {
             is JudgeOutcome.Ok -> {
-                val score = apply(out.verdict)
+                val unsure = isUnsureButShowable(out.verdict, words)
+                val score = apply(if (unsure) asUnsureEstimate(out.verdict) else out.verdict, unsure)
                 // "Still listening" is not a reason to wake the deep model.
                 if (out.verdict.confidence != "low") maybeDeep(score, out.verdict.probability.toDouble())
             }
@@ -158,13 +160,31 @@ class GuardSession(
         }
     }
 
-    private fun apply(v: Verdict): Score {
+    /**
+     * The judge says "low confidence" while a call has no clear purpose yet. That is right for the
+     * first seconds, but a long ordinary chat (or a badly heard one) stayed on "Listening" for the
+     * whole call on real phones. Once enough has been said, show the estimate anyway, capped below
+     * red: an unsure guess may say "looks normal" or "be careful", never "likely a scam".
+     * Only until the first confident verdict; after that, unsure verdicts are ignored as before.
+     */
+    private fun isUnsureButShowable(v: Verdict, words: Int) =
+        v.confidence == "low" && !confidentSeen && words >= SHOW_UNSURE_WORDS
+
+    private fun asUnsureEstimate(v: Verdict) =
+        v.copy(confidence = "medium", probability = minOf(v.probability, UNSURE_CAP))
+
+    private fun apply(v: Verdict, unsure: Boolean = false): Score {
         val score = fusion.update(v.toFusionInput(profile))
+        if (v.confidence != "low" && !unsure) confidentSeen = true
         ui.update {
-            val informative = v.confidence != "low"
+            val informative = v.confidence != "low" && !unsure
             it.copy(
                 score = score,
-                reason = if (informative) v.reason else it.reason,
+                reason = when {
+                    informative -> v.reason
+                    unsure -> UNSURE_REASON
+                    else -> it.reason
+                },
                 signals = if (informative) v.signals.filter { s -> s.score >= 2 }.sortedByDescending { s -> s.score } else it.signals,
                 problem = null,
                 checks = it.checks + 1,
@@ -176,6 +196,9 @@ class GuardSession(
     companion object {
         const val MIN_WORDS = 8
         const val WORDS_BETWEEN_CHECKS = 12
+        const val SHOW_UNSURE_WORDS = 30      // mirrored in eval/run_eval.mjs
+        const val UNSURE_CAP = 45             // below ScoreFusion.RED: a guess never raises the alarm
+        const val UNSURE_REASON = "The caller has not asked for anything risky so far. Scam Guard is still listening."
         const val HEARD_CHARS = 600
         fun wordCount(s: String) = s.split(Regex("\\s+")).count { it.isNotEmpty() }
     }
