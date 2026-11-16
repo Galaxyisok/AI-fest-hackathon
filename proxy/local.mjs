@@ -51,7 +51,12 @@ http.createServer(async (req, res) => {
   if (req.url === '/health') return send(200, { ok: true, backend: BACKEND });
   if (req.method !== 'POST' || req.url !== '/api/judge') return send(404, { error: 'not found' });
   // The eval sends its own header so a full run is not throttled by the per-client limit.
-  if (req.headers['x-eval'] !== '1' && !allow(req.socket.remoteAddress ?? 'local')) return send(429, { error: 'too many requests' });
+  // Only honoured for requests made on this machine: anything arriving through a tunnel
+  // (cloudflared adds cf-connecting-ip / x-forwarded-for) is a real client, limited by its own address.
+  const viaTunnel = req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'];
+  const client = String(req.headers['cf-connecting-ip'] || req.headers['x-forwarded-for'] || req.socket.remoteAddress || 'local').split(',')[0].trim();
+  const evalBypass = !viaTunnel && req.headers['x-eval'] === '1';
+  if (!evalBypass && !allow(client)) return send(429, { error: 'too many requests' });
 
   let raw = '';
   for await (const chunk of req) { raw += chunk; if (raw.length > 200_000) return send(413, { error: 'too large' }); }
