@@ -2,6 +2,7 @@ package com.scamguard.profile
 
 import android.content.Context
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
@@ -47,6 +48,10 @@ class ProfileRepository(context: Context) {
         store.edit { if (url.isNullOrBlank()) it.remove(PHASE1_URL) else it[PHASE1_URL] = url.trim() }
     }
 
+    /** True once the first-run profile screen has been shown, so skipping it is respected. */
+    val onboardingOfferedFlow: Flow<Boolean> = store.data.map { it[ONBOARDING_OFFERED] ?: false }
+    suspend fun setOnboardingOffered() { store.edit { it[ONBOARDING_OFFERED] = true } }
+
     val wrongCountFlow: Flow<Int> = store.data.map { it[WRONG_COUNT] ?: 0 }
     suspend fun countWrong() { store.edit { it[WRONG_COUNT] = (it[WRONG_COUNT] ?: 0) + 1 } }
 
@@ -55,5 +60,6 @@ class ProfileRepository(context: Context) {
         val JUDGE_URL = stringPreferencesKey("judge_url")
         val PHASE1_URL = stringPreferencesKey("phase1_url")
         val WRONG_COUNT = intPreferencesKey("wrong_count")
+        val ONBOARDING_OFFERED = booleanPreferencesKey("onboarding_offered")
     }
 }

@@ -100,7 +100,7 @@ fun rememberSetupStatus(): SetupStatus {
 @Composable
 fun HomeScreen(
     onStartLive: () -> Unit, onDemo: () -> Unit, onSetup: () -> Unit,
-    onProfile: () -> Unit, onPrivacy: () -> Unit, onOpenLive: () -> Unit,
+    onProfile: () -> Unit, onLearn: () -> Unit, onPrivacy: () -> Unit, onOpenLive: () -> Unit,
 ) {
     val context = LocalContext.current
     val status = rememberSetupStatus()
@@ -143,6 +143,7 @@ fun HomeScreen(
                     Body("• ${t.type.plainName}" + if (t.level == Level.HIGH) " (most likely)" else "")
                 }
             }
+            BigButton("Learn how these scams work", onClick = onLearn)
             OutlinedButton(onClick = onProfile) { Text(if (p == null) "Set up my profile" else "Update my profile", fontSize = 17.sp) }
         }
 

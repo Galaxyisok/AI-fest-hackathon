@@ -12,7 +12,12 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.core.content.ContextCompat
 import com.scamguard.calls.CallGuardService
+import com.scamguard.phase1.LearnScreen
 import com.scamguard.phase1.Phase1Screen
+import com.scamguard.profile.ProfileRepository
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import com.scamguard.ui.DemoScreen
 import com.scamguard.ui.HomeScreen
 import com.scamguard.ui.LiveScreen
@@ -20,7 +25,7 @@ import com.scamguard.ui.PrivacyScreen
 import com.scamguard.ui.ScamGuardTheme
 import com.scamguard.ui.SetupScreen
 
-enum class Screen { HOME, LIVE, DEMO, SETUP, PROFILE, PRIVACY }
+enum class Screen { HOME, LIVE, DEMO, SETUP, PROFILE, LEARN, PRIVACY }
 
 class MainActivity : ComponentActivity() {
 
@@ -30,7 +35,9 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         CallGuardService.createChannels(this)
         savedInstanceState?.getString("screen")?.let { screen = Screen.valueOf(it) }
+        val opened = intent?.getStringExtra(EXTRA_OPEN)
         route(intent)
+        if (savedInstanceState == null && opened == null) offerOnboardingOnce()
         setContent {
             ScamGuardTheme {
                 BackHandler(enabled = screen != Screen.HOME) { screen = Screen.HOME }
@@ -40,6 +47,7 @@ class MainActivity : ComponentActivity() {
                         onDemo = { screen = Screen.DEMO },
                         onSetup = { screen = Screen.SETUP },
                         onProfile = { screen = Screen.PROFILE },
+                        onLearn = { screen = Screen.LEARN },
                         onPrivacy = { screen = Screen.PRIVACY },
                         onOpenLive = { screen = Screen.LIVE },
                     )
@@ -49,7 +57,11 @@ class MainActivity : ComponentActivity() {
                         screen = Screen.LIVE
                     })
                     Screen.SETUP -> SetupScreen(onBack = { screen = Screen.HOME })
-                    Screen.PROFILE -> Phase1Screen(onDone = { screen = Screen.HOME })
+                    Screen.PROFILE -> Phase1Screen(onDone = { screen = Screen.HOME }, onLearn = { screen = Screen.LEARN })
+                    Screen.LEARN -> LearnScreen(onBack = { screen = Screen.HOME }, onPractice = { asset, title ->
+                        CallGuardService.startDemo(this, asset, title)
+                        screen = Screen.LIVE
+                    })
                     Screen.PRIVACY -> PrivacyScreen(onBack = { screen = Screen.HOME })
                 }
             }
@@ -64,6 +76,17 @@ class MainActivity : ComponentActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putString("screen", screen.name)
+    }
+
+    /** First launch with no profile: open the profile questions once. "Not now" is remembered. */
+    private fun offerOnboardingOnce() {
+        lifecycleScope.launch {
+            val repo = ProfileRepository(this@MainActivity)
+            if (repo.load() == null && !repo.onboardingOfferedFlow.first()) {
+                repo.setOnboardingOffered()
+                if (screen == Screen.HOME) screen = Screen.PROFILE
+            }
+        }
     }
 
     private fun route(intent: Intent?) {

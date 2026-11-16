@@ -6,8 +6,9 @@ import http from 'node:http';
 import { readFileSync, existsSync } from 'node:fs';
 import { validate, judge, statusFor, allow } from './lib/judge-core.mjs';
 
-const envFile = new URL('./.env', import.meta.url);
-if (existsSync(envFile)) {
+// proxy/.env, or the one .env at the repo root that scripts/dev-servers.sh also uses.
+for (const envFile of [new URL('./.env', import.meta.url), new URL('../.env', import.meta.url)]) {
+  if (!existsSync(envFile)) continue;
   for (const line of readFileSync(envFile, 'utf8').split(/\r?\n/)) {
     const m = line.match(/^\s*([A-Z_]+)\s*=\s*(.*)\s*$/);
     if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '');
@@ -38,7 +39,7 @@ function mockJudge(input) {
 }
 
 if (BACKEND === 'anthropic' && !process.env.ANTHROPIC_API_KEY) {
-  console.error('ANTHROPIC_API_KEY is not set. Put it in proxy/.env or the environment, or run with JUDGE_BACKEND=mock.');
+  console.error('ANTHROPIC_API_KEY is not set. Put it in .env at the repo root or the environment, or run with JUDGE_BACKEND=mock.');
   process.exit(1);
 }
 

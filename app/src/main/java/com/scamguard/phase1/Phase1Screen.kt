@@ -68,7 +68,7 @@ fun onboardingErrorMessage(e: Throwable): String = when {
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun Phase1Screen(onDone: () -> Unit) {
+fun Phase1Screen(onDone: () -> Unit, onLearn: () -> Unit = onDone) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()   // cancelled when the screen closes: a late answer is then discarded
     val repo = remember { ProfileRepository(context) }
@@ -167,7 +167,8 @@ fun Phase1Screen(onDone: () -> Unit) {
                 InfoCard(tint = Color(0xFFE8F1F7)) {
                     Body("This is to help you stay alert. It is not a promise that you are safe: a scam marked \"less likely\" can still happen to you.")
                 }
-                BigButton("Done", onClick = onDone)
+                BigButton("Show me how these scams work", onClick = onLearn)
+                OutlinedButton(onClick = onDone, modifier = Modifier.fillMaxWidth()) { Text("Done", fontSize = 17.sp) }
             }
         }
     }

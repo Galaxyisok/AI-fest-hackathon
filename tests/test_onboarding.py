@@ -98,14 +98,14 @@ def run_provider(profile=PROFILE, stop='end_turn', status=200, body=None):
     async def run():
         def handler(request):
             payload = json.loads(request.content)
-            assert payload['model'] == 'claude-haiku-4-5-20251001'
+            assert payload['model'] == 'claude-haiku-5-5'
             assert payload['output_config']['format']['type'] == 'json_schema'
             assert request.headers['x-api-key'] == 'test-only'
             assert 'cache_control' not in json.dumps(payload)
             return httpx.Response(status, json=body if body is not None else {
                 'stop_reason': stop, 'content': [{'type': 'text', 'text': json.dumps(profile)}]})
         async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
-            return await HaikuAnalyzer(client, 'test-only', 'claude-haiku-4-5-20251001').analyze(
+            return await HaikuAnalyzer(client, 'test-only', 'claude-haiku-5-5').analyze(
                 Answers.model_validate(REQUEST['answers']))
     return asyncio.run(run())
 
@@ -175,3 +175,47 @@ def test_concurrent_limit():
                 assert (await first).status_code == 200
                 assert app.state.inflight == 0
     asyncio.run(run())
+
+
+# ---- added when the two halves were joined: the default model is the current Haiku ----
+
+def run_with(body, model='claude-haiku-5-5'):
+    seen = {}
+
+    async def run():
+        def handler(request):
+            seen.update(json.loads(request.content))
+            return httpx.Response(200, json=body)
+        async with httpx.AsyncClient(transport=httpx.MockTransport(handler)) as client:
+            return await HaikuAnalyzer(client, 'test-only', model).analyze(
+                Answers.model_validate(REQUEST['answers']))
+    return asyncio.run(run()), seen
+
+
+def test_a_thinking_block_before_the_answer_is_ignored():
+    profile, _ = run_with({'stop_reason': 'end_turn', 'content': [
+        {'type': 'thinking', 'thinking': '', 'signature': 'x'},
+        {'type': 'text', 'text': json.dumps(PROFILE)}]})
+    assert profile.model_dump() == PROFILE
+
+
+def test_two_answers_are_still_rejected():
+    with pytest.raises(ProviderFailure):
+        run_with({'stop_reason': 'end_turn', 'content': [
+            {'type': 'text', 'text': json.dumps(PROFILE)}, {'type': 'text', 'text': json.dumps(PROFILE)}]})
+
+
+def test_current_haiku_is_the_default_and_is_asked_to_answer_fast():
+    from backend.provider import DEFAULT_MODEL
+    assert DEFAULT_MODEL == 'claude-haiku-5-5' and Settings().model == DEFAULT_MODEL
+    _, sent = run_with({'stop_reason': 'end_turn', 'content': [{'type': 'text', 'text': json.dumps(PROFILE)}]})
+    assert sent['model'] == 'claude-haiku-5-5'
+    assert sent['thinking'] == {'type': 'disabled'}
+    assert sent['output_config']['effort'] == 'low'
+    assert sent['output_config']['format']['type'] == 'json_schema'
+
+
+def test_older_haiku_gets_no_parameters_it_would_reject():
+    _, sent = run_with({'stop_reason': 'end_turn', 'content': [{'type': 'text', 'text': json.dumps(PROFILE)}]},
+                       model='claude-haiku-4-5-20251001')
+    assert 'thinking' not in sent and 'effort' not in sent['output_config']

@@ -6,7 +6,7 @@ Everything here is either implemented in this branch or marked as pending. Numbe
 
 - **Threat:** scam calls that impersonate police, banks, couriers, employers or relatives to take money, OTPs or control of the phone.
 - **User:** people who answer unknown numbers; personalised by a scam profile (student, parent, senior, professional).
-- **Stage: DURING the attack.** (Phase 1 covers *before*: tap-only questions, then Claude Haiku works out which scams you are exposed to. Core for judging: *during*.)
+- **Stage: DURING the attack.** (Phase 1 covers *before*: tap-only questions, Claude Haiku works out which scams you are exposed to, and the app teaches those first, with practice calls. Core for judging: *during*.)
 - One line: *"A second pair of ears on the call, which tells you the odds while you can still hang up."*
 - Demo opens with: the fake-police parcel call.
 
@@ -51,6 +51,7 @@ Copy the table from [`threat-model.md`](threat-model.md). The demo follows it: h
 | Effectiveness 25 | `eval/results.md` **[PENDING]**; 52-call held-out set; hard negatives; time-to-alarm |
 | Innovation 20 | Live, mid-call, percentage that moves as the script unfolds; personal profile from Phase 1 feeding the detector; spoken-digit redaction including misheard digits |
 | Privacy 15 | `privacy.md`; data-flow table; what is not requested |
+| Before-the-call value | Personal profile by AI from tap-only answers; "Know the scams" training ordered by that profile; practice calls that run through the real detector |
 | Usability 15 | One number, one sentence, one action; large text; setup explains each permission before asking; demo an ordinary person can follow |
 
 ## Consent and credits line for the last slide

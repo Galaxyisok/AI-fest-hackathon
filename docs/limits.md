@@ -39,8 +39,9 @@ Said plainly, because the brief asks for it and a judge will find these anyway.
 
 - The profile is made by the Phase 1 backend (`backend/`, Python) and Claude Haiku. It has been exercised from the app against the real HTTP server with a canned analyzer, **not yet with the live model**.
 - It is a second server to run or deploy, separate from the call-judge proxy (`proxy/`, Node).
-- Phase 1 as delivered is profile-building only. The "train the user with simulated scams" half of the original idea is not built.
-- The backend pins `claude-haiku-4-5-20251001`. Do not point it at Haiku 5.5 without a code change: it rejects any reply that is not exactly one text block, and newer models add a thinking block.
+- **Training is fixed text, not AI.** "Know the scams" explains each of the eight scam types (how the call goes, what gives it away, what to do) in words written by the team. The profile only decides the order. Three types have a practice call played through the real detector; the other five have none yet.
+- The training text has not been checked line by line against cybercrime.gov.in or RBI guidance. Do that before telling anyone it is official advice.
+- The profile service now defaults to Haiku 5.5, like the call judge. That request shape is covered by tests against a mocked reply but has **not yet been sent to the live API**.
 - Its rate limit is one global counter (30 a minute for everyone), so one noisy client can lock out all users.
 
 ## Abuse resistance

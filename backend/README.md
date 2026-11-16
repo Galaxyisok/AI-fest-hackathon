@@ -1,10 +1,12 @@
-# Phase 1: onboarding backend
+# Phase 1: profile service
 
-Native Android onboarding support for Galaxyisok/AI-fest-hackathon, branch `phase-1`.
-This is the Python API behind the Android app, not a web frontend or a replacement
-Android app. No call analysis, Phase 2 code, screens, database, or APK is included.
-The remote repository was empty when this branch was started; shared `profile/`
-models and `ProfileRepository` were not yet available.
+The Python API behind the app's onboarding. It takes tap-only answers, asks Claude Haiku which
+scam calls this person is most exposed to, and returns the profile the call guard uses.
+It has no database and stores nothing. The screens that call it are in
+`app/src/main/java/com/scamguard/phase1/`; the shared profile format is `docs/profile-contract.md`.
+
+Quickest way to run it together with the call judge: `bash scripts/dev-servers.sh` from the
+repository root (one `.env` with the key serves both). The rest of this file is the detail.
 
 ## Run
 
@@ -94,22 +96,23 @@ are AI-generated; identifier-pattern rejection is defense in depth, not a perfec
 PII detector. Since identity fields never enter the model, reasons should describe
 only coarse circumstances, and the system prompt explicitly forbids invented identities.
 
-Uses Haiku `claude-haiku-4-5-20251001`, server-only key, a 35-second total provider
+Uses Haiku `claude-haiku-5-5` (set `CLAUDE_MODEL` to change it; thinking is switched off and
+effort set low for a quick answer, and a Haiku 4.5 model ID is sent neither), server-only key, a 35-second total provider
 deadline, bounded output, no automatic retry, and structured JSON via Anthropic's
 [structured output API](https://platform.claude.com/docs/en/build-with-claude/structured-outputs).
 There are no age-to-threat rules, scores or static threat fallbacks.
 
 ## Android handoff and verification
 
-See [integration/ANDROID.md](integration/ANDROID.md) for Compose lifecycle, save/load
-and UI requirements limited to onboarding. The Kotlin adapter is isolated under
-`integration/phase1/`; copy it into the app's `phase1/` package when the Android
-project arrives. It does not define or replace shared profile storage.
+[integration/ANDROID.md](../integration/ANDROID.md) is the original hand-off note: the rules the
+onboarding screen follows (answers never saved, cleared on send, save before showing the result).
+The Kotlin client now lives in the app at `app/src/main/java/com/scamguard/phase1/OnboardingClient.kt`.
 
 Run `.venv/Scripts/python -m pytest -q`. Tests use a mocked provider and exercise the
 real HTTP adapter, validation, failure handling, concurrency and privacy-safe errors.
 They do not establish live model quality. Live testing requires a server-side key
 and the eventual HTTPS endpoint. `python -m backend.smoke` runs an opt-in, paid
-provider check with synthetic inputs after setting the server key. Use synthetic selections first, check profile
+provider check with synthetic inputs after setting the server key, and prints the profile it got
+so its relevance can be read. Use synthetic selections first, check profile
 schema and relevance, then verify the actual app's save/load round trip before
 integration rehearsal. No real-user information belongs in fixtures.

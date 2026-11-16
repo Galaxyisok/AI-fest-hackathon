@@ -11,13 +11,13 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from .models import OnboardingRequest, Profile
-from .provider import HaikuAnalyzer, ProviderFailure
+from .provider import DEFAULT_MODEL, HaikuAnalyzer, ProviderFailure
 
 
 @dataclass(frozen=True)
 class Settings:
     api_key: str = ''
-    model: str = 'claude-haiku-4-5-20251001'
+    model: str = DEFAULT_MODEL
     requests_per_minute: int = 30
     max_inflight: int = 4
 
@@ -30,7 +30,7 @@ class Settings:
     @classmethod
     def from_env(cls):
         return cls(os.getenv('ANTHROPIC_API_KEY', ''),
-                   os.getenv('CLAUDE_MODEL', 'claude-haiku-4-5-20251001'),
+                   os.getenv('CLAUDE_MODEL', DEFAULT_MODEL),
                    int(os.getenv('REQUESTS_PER_MINUTE', '30')),
                    int(os.getenv('MAX_INFLIGHT', '4')))
 
