@@ -42,6 +42,8 @@ The judge does not match keywords. It scores seven things about the *shape* of t
 
 ## Build and run
 
+**Deployed (Vercel, both stateless, key held as a project environment variable):** call judge `https://scamguard-judge.vercel.app/api/judge` (project in `proxy/`), profile service `https://scamguard-profile.vercel.app/v1/onboarding/profile` (repo root: `api/index.py` serves `backend/` unchanged; `.vercelignore` uploads only that). Put the key on both with `bash scripts/vercel-set-key.sh`, then `npx vercel deploy --prod` in each.
+
 Needs JDK 17+, the Android SDK (API 35) and Node 20+. The first build downloads the speech model (about 40 MB).
 
 ```bash
@@ -51,8 +53,8 @@ bash scripts/dev-servers.sh                      # profile service :8000 and cal
 
 # 2. app, on an emulator (defaults: judge http://10.0.2.2:8787/api/judge, profile http://10.0.2.2:8000/v1/onboarding/profile)
 ./gradlew installDebug
-#    or against deployed servers:
-./gradlew assembleRelease -PjudgeUrl=https://<proxy>/api/judge -Pphase1Url=https://<backend>/v1/onboarding/profile
+#    or against the deployed servers (what a real phone needs; 10.0.2.2 exists only in the emulator):
+./gradlew assembleRelease -PjudgeUrl=https://scamguard-judge.vercel.app/api/judge -Pphase1Url=https://scamguard-profile.vercel.app/v1/onboarding/profile
 
 # 3. tests
 ./gradlew testDebugUnitTest

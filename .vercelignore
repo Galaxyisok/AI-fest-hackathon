@@ -1,0 +1,10 @@
+# The repo-root Vercel project is ONLY the Python profile service. Upload nothing else
+# (the Android app, the Vosk model, eval data and local secrets stay off Vercel).
+# The judge proxy is a separate Vercel project deployed from proxy/.
+/*
+!/api
+!/backend
+!/requirements.txt
+!/vercel.json
+__pycache__
+*.pyc

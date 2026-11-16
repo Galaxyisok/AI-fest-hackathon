@@ -21,3 +21,6 @@ eval/audio/*.wav
 __pycache__/
 .pytest_cache/
 *.pyc
+
+.vercel
+.env*
