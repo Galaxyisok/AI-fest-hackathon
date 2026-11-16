@@ -3,6 +3,7 @@
 
 export const AMBER = 30;
 export const RED = 60;
+export const MAX_DISPLAY = 95;
 
 const PRIOR_WEIGHTS = { international: 0.35, unverified: 0.35, hidden: 0.25 };
 const PRIOR_CAP = 0.7;
@@ -70,7 +71,8 @@ export class ScoreFusion {
   }
 
   snapshot() {
-    const display = this.ema === null ? null : Math.round(this.ema / 5) * 5;
+    // Rounded to 5, and never above 95: no detector is certain, and "100%" would say it is.
+    const display = this.ema === null ? null : Math.min(MAX_DISPLAY, Math.round(this.ema / 5) * 5);
     return { display, band: bandFor(display), raw: this.ema };
   }
 }

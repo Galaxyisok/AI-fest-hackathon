@@ -42,6 +42,8 @@ test('normalise clamps model output', () => {
     signals: { authority: sig }, matched_threat: 'nonsense', confidence: 'certain', scam_probability: 140, reason: 'r',
   }));
   assert.equal(n.scam_probability, 100);
+  assert.equal(normalise({ signals: {}, scam_probability: 5, reason: 'Hang up now.}' }).reason, 'Hang up now.');
+  assert.equal(normalise({ signals: {}, scam_probability: 5, reason: 'A normal call.' }).reason, 'A normal call.');
   assert.equal(n.signals.authority.score, 3);
   assert.equal(n.signals.payment_request.score, 0);
   assert.equal(n.matched_threat, 'none');

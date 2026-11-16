@@ -82,13 +82,15 @@ class ScoreFusion(prior: CallerPrior = CallerPrior()) {
 
     fun snapshot(): Score {
         val e = ema ?: return Score(null, Band.LISTENING, null)
-        val display = Math.round(e / 5.0).toInt() * 5
+        // Rounded to 5, and never above 95: no detector is certain, and "100%" would say it is.
+        val display = minOf(MAX_DISPLAY, Math.round(e / 5.0).toInt() * 5)
         return Score(display, bandFor(display), e)
     }
 
     companion object {
         const val AMBER = 30
         const val RED = 60
+        const val MAX_DISPLAY = 95
         private const val PRIOR_CAP = 0.7
         private val BOOST = mapOf("high" to 0.5, "medium" to 0.25, "low" to 0.0, "none" to 0.0)
         private const val RISE_ALPHA = 0.7

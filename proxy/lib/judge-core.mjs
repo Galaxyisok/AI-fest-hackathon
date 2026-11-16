@@ -78,7 +78,7 @@ export function normalise(raw) {
     matched_threat: [...THREAT_TYPES, 'other_scam', 'none'].includes(v.matched_threat) ? v.matched_threat : 'none',
     confidence: ['low', 'medium', 'high'].includes(v.confidence) ? v.confidence : 'low',
     scam_probability: Math.min(100, Math.max(0, Math.round(p))),
-    reason: String(v.reason ?? '').slice(0, 240),
+    reason: String(v.reason ?? '').replace(/[\s{}\[\]"]+$/, '').slice(0, 240),   // seen live: "Hang up now.}"
   };
 }
 

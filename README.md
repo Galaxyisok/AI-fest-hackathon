@@ -31,13 +31,13 @@ The judge does not match keywords. It scores seven things about the *shape* of t
 | Claim | Status |
 |---|---|
 | APK builds, installs, cold-launches | Verified on an Android 15 emulator |
-| Recording → on-device speech-to-text → redaction → proxy → meter | Verified on the emulator, **with a stand-in judge**, not yet with the real model |
+| Recording → on-device speech-to-text → redaction → proxy → meter | Verified on the emulator with the live models |
 | Unknown-caller notification before answering | Verified on the emulator with a simulated incoming call |
 | Redaction and score maths are identical in the app and in the eval | Verified: Kotlin and JavaScript pass the same vectors in `shared/` |
-| Onboarding: questions → Phase 1 server → profile saved → shown on Home after restart; a server failure leaves the old profile untouched | Verified on the emulator against the real Phase 1 HTTP server **with a canned analyzer**, not yet with the live model |
+| Onboarding: questions → Phase 1 server → profile saved → shown on Home after restart; a server failure leaves the old profile untouched | Verified on the emulator against the real Phase 1 server with a canned analyzer; the server's live Haiku call verified separately (a sensible profile in 3.5 s) |
 | First launch opens the profile questions once; "Know the scams" lists the user's likeliest scams first and starts a practice call | Verified on the emulator |
-| Scams caught / false alarms on the held-out test set | **Not run yet** (needs the API key). See `eval/results.md`. |
-| The four demo calls land in the right colour with the real model | **Not run yet** |
+| Scams caught / false alarms on the held-out test set (52 synthetic calls) | **26 of 26 scams caught, 1 of 26 genuine calls wrongly alarmed** in the shipped cascade mode. Synthetic data: read the caveats in [`eval/results.md`](eval/results.md). |
+| The four demo calls land in the right colour with the live model | Verified on the emulator: genuine call peaked at 15%, the three scams reached 95% or more |
 | Hearing a real phone call on speaker | **Built, not proven on hardware.** Needs the accessibility switch in Setup; see `docs/limits.md`. |
 
 ## Build and run

@@ -2,71 +2,244 @@
   {
     "name": "low confidence first verdict shows nothing (still listening)",
     "prior": {},
-    "steps": [ { "tier": "fast", "p": 50, "confidence": "low", "profileMatch": 0, "matchedLevel": "none", "display": null, "band": "listening" } ]
+    "steps": [
+      {
+        "tier": "fast",
+        "p": 50,
+        "confidence": "low",
+        "profileMatch": 0,
+        "matchedLevel": "none",
+        "display": null,
+        "band": "listening"
+      }
+    ]
   },
   {
     "name": "benign call stays green",
     "prior": {},
     "steps": [
-      { "tier": "fast", "p": 5, "confidence": "high", "profileMatch": 0, "matchedLevel": "none", "display": 5, "band": "green" },
-      { "tier": "fast", "p": 10, "confidence": "high", "profileMatch": 0, "matchedLevel": "none", "display": 10, "band": "green" }
+      {
+        "tier": "fast",
+        "p": 5,
+        "confidence": "high",
+        "profileMatch": 0,
+        "matchedLevel": "none",
+        "display": 5,
+        "band": "green"
+      },
+      {
+        "tier": "fast",
+        "p": 10,
+        "confidence": "high",
+        "profileMatch": 0,
+        "matchedLevel": "none",
+        "display": 10,
+        "band": "green"
+      }
     ]
   },
   {
     "name": "clear scam goes red on first confident verdict",
     "prior": {},
-    "steps": [ { "tier": "fast", "p": 90, "confidence": "high", "profileMatch": 0, "matchedLevel": "none", "display": 90, "band": "red" } ]
+    "steps": [
+      {
+        "tier": "fast",
+        "p": 90,
+        "confidence": "high",
+        "profileMatch": 0,
+        "matchedLevel": "none",
+        "display": 90,
+        "band": "red"
+      }
+    ]
   },
   {
     "name": "caller prior nudges a borderline score up, never decides alone",
-    "prior": { "international": true, "unverified": true },
-    "steps": [ { "tier": "fast", "p": 50, "confidence": "medium", "profileMatch": 0, "matchedLevel": "none", "display": 65, "band": "red" } ]
+    "prior": {
+      "international": true,
+      "unverified": true
+    },
+    "steps": [
+      {
+        "tier": "fast",
+        "p": 50,
+        "confidence": "medium",
+        "profileMatch": 0,
+        "matchedLevel": "none",
+        "display": 65,
+        "band": "red"
+      }
+    ]
   },
   {
     "name": "caller prior on a benign call stays green",
-    "prior": { "international": true, "unverified": true },
-    "steps": [ { "tier": "fast", "p": 5, "confidence": "high", "profileMatch": 0, "matchedLevel": "none", "display": 10, "band": "green" } ]
+    "prior": {
+      "international": true,
+      "unverified": true
+    },
+    "steps": [
+      {
+        "tier": "fast",
+        "p": 5,
+        "confidence": "high",
+        "profileMatch": 0,
+        "matchedLevel": "none",
+        "display": 10,
+        "band": "green"
+      }
+    ]
   },
   {
     "name": "profile boost applies only when the judge reports a real match",
     "prior": {},
     "steps": [
-      { "tier": "fast", "p": 50, "confidence": "medium", "profileMatch": 1, "matchedLevel": "high", "display": 50, "band": "amber" },
-      { "tier": "fast", "p": 50, "confidence": "medium", "profileMatch": 3, "matchedLevel": "high", "display": 60, "band": "red" }
+      {
+        "tier": "fast",
+        "p": 50,
+        "confidence": "medium",
+        "profileMatch": 1,
+        "matchedLevel": "high",
+        "display": 50,
+        "band": "amber"
+      },
+      {
+        "tier": "fast",
+        "p": 50,
+        "confidence": "medium",
+        "profileMatch": 3,
+        "matchedLevel": "high",
+        "display": 60,
+        "band": "red"
+      }
     ]
   },
   {
     "name": "deep verdict dominates a stale fast one",
     "prior": {},
     "steps": [
-      { "tier": "fast", "p": 40, "confidence": "medium", "profileMatch": 0, "matchedLevel": "none", "display": 40, "band": "amber" },
-      { "tier": "deep", "p": 90, "confidence": "high", "profileMatch": 0, "matchedLevel": "none", "display": 75, "band": "red" }
+      {
+        "tier": "fast",
+        "p": 40,
+        "confidence": "medium",
+        "profileMatch": 0,
+        "matchedLevel": "none",
+        "display": 40,
+        "band": "amber"
+      },
+      {
+        "tier": "deep",
+        "p": 90,
+        "confidence": "high",
+        "profileMatch": 0,
+        "matchedLevel": "none",
+        "display": 75,
+        "band": "red"
+      }
     ]
   },
   {
     "name": "score may not drop sharply once the call has been red",
     "prior": {},
     "steps": [
-      { "tier": "fast", "p": 90, "confidence": "high", "profileMatch": 0, "matchedLevel": "none", "display": 90, "band": "red" },
-      { "tier": "fast", "p": 10, "confidence": "high", "profileMatch": 0, "matchedLevel": "none", "display": 80, "band": "red" },
-      { "tier": "fast", "p": 10, "confidence": "high", "profileMatch": 0, "matchedLevel": "none", "display": 75, "band": "red" }
+      {
+        "tier": "fast",
+        "p": 90,
+        "confidence": "high",
+        "profileMatch": 0,
+        "matchedLevel": "none",
+        "display": 90,
+        "band": "red"
+      },
+      {
+        "tier": "fast",
+        "p": 10,
+        "confidence": "high",
+        "profileMatch": 0,
+        "matchedLevel": "none",
+        "display": 80,
+        "band": "red"
+      },
+      {
+        "tier": "fast",
+        "p": 10,
+        "confidence": "high",
+        "profileMatch": 0,
+        "matchedLevel": "none",
+        "display": 75,
+        "band": "red"
+      }
     ]
   },
   {
     "name": "before any red, the score follows evidence back down",
     "prior": {},
     "steps": [
-      { "tier": "fast", "p": 45, "confidence": "medium", "profileMatch": 0, "matchedLevel": "none", "display": 45, "band": "amber" },
-      { "tier": "fast", "p": 5, "confidence": "high", "profileMatch": 0, "matchedLevel": "none", "display": 30, "band": "amber" },
-      { "tier": "fast", "p": 5, "confidence": "high", "profileMatch": 0, "matchedLevel": "none", "display": 20, "band": "green" }
+      {
+        "tier": "fast",
+        "p": 45,
+        "confidence": "medium",
+        "profileMatch": 0,
+        "matchedLevel": "none",
+        "display": 45,
+        "band": "amber"
+      },
+      {
+        "tier": "fast",
+        "p": 5,
+        "confidence": "high",
+        "profileMatch": 0,
+        "matchedLevel": "none",
+        "display": 30,
+        "band": "amber"
+      },
+      {
+        "tier": "fast",
+        "p": 5,
+        "confidence": "high",
+        "profileMatch": 0,
+        "matchedLevel": "none",
+        "display": 20,
+        "band": "green"
+      }
     ]
   },
   {
     "name": "low confidence verdict after a score is ignored, not shown as a drop",
     "prior": {},
     "steps": [
-      { "tier": "fast", "p": 70, "confidence": "high", "profileMatch": 0, "matchedLevel": "none", "display": 70, "band": "red" },
-      { "tier": "fast", "p": 20, "confidence": "low", "profileMatch": 0, "matchedLevel": "none", "display": 70, "band": "red" }
+      {
+        "tier": "fast",
+        "p": 70,
+        "confidence": "high",
+        "profileMatch": 0,
+        "matchedLevel": "none",
+        "display": 70,
+        "band": "red"
+      },
+      {
+        "tier": "fast",
+        "p": 20,
+        "confidence": "low",
+        "profileMatch": 0,
+        "matchedLevel": "none",
+        "display": 70,
+        "band": "red"
+      }
+    ]
+  },
+  {
+    "name": "the meter never claims certainty: shown value stops at 95",
+    "prior": {},
+    "steps": [
+      {
+        "tier": "fast",
+        "p": 100,
+        "confidence": "high",
+        "profileMatch": 0,
+        "matchedLevel": "none",
+        "display": 95,
+        "band": "red"
+      }
     ]
   }
 ]

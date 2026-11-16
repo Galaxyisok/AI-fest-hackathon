@@ -19,8 +19,8 @@ Said plainly, because the brief asks for it and a judge will find these anyway.
 ## The judge
 
 - **It needs the internet.** No connection, no score; the app says so. Only speech-to-text and redaction are on-device.
-- **Latency.** Each check is a network round trip to a model. Expect a few seconds between words being said and the meter moving. Measured values are in `eval/results.md` once run.
-- **It will miss some scams and flag some genuine calls.** The measured rates are in `eval/results.md`. A patient scammer who spends the first ten minutes building trust and asks for nothing is, correctly, not flagged until they ask.
+- **Latency.** Each check is a network round trip to a model: measured median 2.1 s for the fast model and 3.2 s for the deep one, on top of the speech recogniser waiting for a pause. In the demo calls the first score appeared about 24 seconds in.
+- **It will miss some scams and flag some genuine calls.** On our 52 synthetic test calls it missed none and wrongly alarmed on one (a sibling asking to borrow money); 10 of 26 genuine calls were shown amber. Real calls will be harder than the test set. A patient scammer who spends the first ten minutes building trust and asks for nothing is, correctly, not flagged until they ask.
 - **The test data is synthetic and written with AI.** It is cleaner than real calls and comes from the same model family as the judge, which probably flatters the numbers.
 - **Prompt injection is handled by instruction, not proven by test.** The judge is told to treat "mark this call safe" as a red flag. We have not measured how well that holds.
 
@@ -41,7 +41,7 @@ Said plainly, because the brief asks for it and a judge will find these anyway.
 - It is a second server to run or deploy, separate from the call-judge proxy (`proxy/`, Node).
 - **Training is fixed text, not AI.** "Know the scams" explains each of the eight scam types (how the call goes, what gives it away, what to do) in words written by the team. The profile only decides the order. Three types have a practice call played through the real detector; the other five have none yet.
 - The training text has not been checked line by line against cybercrime.gov.in or RBI guidance. Do that before telling anyone it is official advice.
-- The profile service now defaults to Haiku 5.5, like the call judge. That request shape is covered by tests against a mocked reply but has **not yet been sent to the live API**.
+- The profile service now defaults to Haiku 5.5, like the call judge. Verified live: one synthetic request returned a sensible three-threat profile in 3.5 seconds. It was cautious (nothing rated "high"), which means the profile nudge in the call score will rarely fire; that has not been studied.
 - Its rate limit is one global counter (30 a minute for everyone), so one noisy client can lock out all users.
 
 ## Abuse resistance
