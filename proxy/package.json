@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node local.mjs",
     "dev:mock": "JUDGE_BACKEND=mock node local.mjs",
-    "test": "node --test lib"
+    "test": "node --test lib/core.test.mjs"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.8.0"
