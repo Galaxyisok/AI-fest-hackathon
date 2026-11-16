@@ -7,10 +7,22 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
+import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.font.FontWeight
+import com.scamguard.ui.Eyebrow
+import com.scamguard.ui.Ocean
+import com.scamguard.ui.Mint
+import com.scamguard.ui.ShieldArtwork
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -104,24 +116,36 @@ fun Phase1Screen(onDone: () -> Unit, onLearn: () -> Unit = onDone) {
         }
     }
 
+    key(step) {
     Page("My scam profile", onBack = onDone) {
         when (step) {
             Step.CONSENT -> {
-                Body("Scam Guard can work out which scam calls are most likely to target you, so it knows what to watch for.")
+                InfoCard(tint = Color(0xFFE3F3EE)) {
+                    Eyebrow("PERSONAL, BY DESIGN")
+                    Text("Know what to\nwatch for.", fontFamily = FontFamily.Serif, fontSize = 30.sp, lineHeight = 34.sp, color = Ocean)
+                    ShieldArtwork(Modifier.fillMaxWidth().height(104.dp))
+                    Body("A few choices help Scam Guard recognise the scams most likely to target you.")
+                }
                 InfoCard {
-                    Body("How it works", bold = true)
-                    Body("• You answer a few questions by tapping. Nothing is typed, and there is no question about your name, number, address or any ID.")
-                    Body("• Your answers are sent to an AI service (Claude, made by Anthropic) which decides which scams you are most exposed to.")
-                    Body("• Your answers are not saved, on this phone or on our server. Only the result is kept, on this phone.")
-                    Body("• You can skip any question except the first, and delete the result at any time.")
+                    Eyebrow("BEFORE YOU BEGIN")
+                    Body("Only broad choices", bold = true)
+                    Body("Tap your answers. No name, number, address or ID is requested.", color = Neutral)
+                    HorizontalDivider(color = Ocean.copy(alpha = 0.08f))
+                    Body("Analysed by Claude", bold = true)
+                    Body("Your choices are sent to Anthropic’s AI service to create your profile. Our app and server do not save those answers.", color = Neutral)
+                    HorizontalDivider(color = Ocean.copy(alpha = 0.08f))
+                    Body("You stay in control", bold = true)
+                    Body("Only the profile stays on your phone. Skip any question except the first, and delete the profile whenever you like.", color = Neutral)
                 }
                 saved?.let { ProfileCard("Your current profile", it) }
-                BigButton("I agree, ask me the questions") { step = Step.QUESTIONS }
+                BigButton("Agree & personalise") { step = Step.QUESTIONS }
                 OutlinedButton(onClick = onDone, modifier = Modifier.fillMaxWidth()) { Text("Not now", fontSize = 17.sp) }
                 SampleProfiles(repo, onDone)
             }
 
             Step.QUESTIONS -> {
+                Eyebrow("A FEW THINGS ABOUT YOU")
+                Body("Only the first answer is required. Everything else is your choice.", color = Neutral)
                 error?.let { InfoCard(tint = Amber.copy(alpha = 0.12f)) { Body(it, color = Amber, bold = true) } }
                 Question("Which describes you best?", OnboardingQuestions.userType, setOfNotNull(answers.userType)) {
                     answers = answers.copy(userType = it)
@@ -174,6 +198,8 @@ fun Phase1Screen(onDone: () -> Unit, onLearn: () -> Unit = onDone) {
     }
 }
 
+}
+
 private fun Set<String>.toggle(key: String) = if (key in this) this - key else this + key
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -181,13 +207,15 @@ private fun Set<String>.toggle(key: String) = if (key in this) this - key else t
 private fun Question(title: String, choices: List<Choice>, selected: Set<String>, onTap: (String) -> Unit) {
     InfoCard {
         Body(title, bold = true)
-        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
             choices.forEach { c ->
                 FilterChip(
                     selected = c.key in selected,
                     onClick = { onTap(c.key) },
                     label = { Text(c.label, fontSize = 16.sp) },
                     modifier = Modifier.heightIn(min = 48.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = FilterChipDefaults.filterChipColors(selectedContainerColor = Mint, selectedLabelColor = Ocean, labelColor = Neutral),
                 )
             }
         }
@@ -198,7 +226,8 @@ private fun Question(title: String, choices: List<Choice>, selected: Set<String>
 private fun ProfileCard(title: String, profile: VulnerabilityProfile) {
     InfoCard {
         Body(title, bold = true)
-        profile.threats.sortedByDescending { it.level.ordinal }.forEach { t ->
+        profile.threats.sortedByDescending { it.level.ordinal }.forEachIndexed { index, t ->
+            if (index > 0) HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp), color = Ocean.copy(alpha = 0.10f))
             val (word, color) = when (t.level) {
                 Level.HIGH -> "Most likely" to Red
                 Level.MEDIUM -> "Possible" to Amber

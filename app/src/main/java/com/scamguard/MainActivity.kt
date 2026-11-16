@@ -7,6 +7,19 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.unit.dp
+import com.scamguard.ui.AppDock
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -41,7 +54,15 @@ class MainActivity : ComponentActivity() {
         setContent {
             ScamGuardTheme {
                 BackHandler(enabled = screen != Screen.HOME) { screen = Screen.HOME }
-                when (screen) {
+                val dockVisible = screen in listOf(Screen.HOME, Screen.LEARN, Screen.PROFILE)
+                Box(Modifier.fillMaxSize()) {
+                AnimatedContent(
+                    targetState = screen,
+                    modifier = Modifier.fillMaxSize().padding(bottom = if (dockVisible) 88.dp else 0.dp),
+                    transitionSpec = { (fadeIn(tween(260)) + slideInVertically(tween(300)) { it / 30 }) togetherWith fadeOut(tween(140)) },
+                    label = "page",
+                ) { currentScreen ->
+                when (currentScreen) {
                     Screen.HOME -> HomeScreen(
                         onStartLive = ::startLive,
                         onDemo = { screen = Screen.DEMO },
@@ -53,16 +74,19 @@ class MainActivity : ComponentActivity() {
                     )
                     Screen.LIVE -> LiveScreen(onBack = { screen = Screen.HOME })
                     Screen.DEMO -> DemoScreen(onBack = { screen = Screen.HOME }, onPlay = { call ->
-                        CallGuardService.startDemo(this, call.asset, call.title)
+                        CallGuardService.startDemo(this@MainActivity, call.asset, call.title)
                         screen = Screen.LIVE
                     })
                     Screen.SETUP -> SetupScreen(onBack = { screen = Screen.HOME })
                     Screen.PROFILE -> Phase1Screen(onDone = { screen = Screen.HOME }, onLearn = { screen = Screen.LEARN })
                     Screen.LEARN -> LearnScreen(onBack = { screen = Screen.HOME }, onPractice = { asset, title ->
-                        CallGuardService.startDemo(this, asset, title)
+                        CallGuardService.startDemo(this@MainActivity, asset, title)
                         screen = Screen.LIVE
                     })
                     Screen.PRIVACY -> PrivacyScreen(onBack = { screen = Screen.HOME })
+                }
+                }
+                if (dockVisible) AppDock(screen, { screen = it }, Modifier.align(Alignment.BottomCenter))
                 }
             }
         }

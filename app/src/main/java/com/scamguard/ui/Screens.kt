@@ -12,6 +12,16 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.spring
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -38,12 +48,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -63,6 +76,8 @@ import com.scamguard.judge.Band
 import com.scamguard.profile.Level
 import com.scamguard.profile.ProfileRepository
 import kotlinx.coroutines.launch
+import kotlin.math.cos
+import kotlin.math.sin
 
 // ---------------------------------------------------------------------------------------------
 // What the phone has allowed so far. Re-read every time the user comes back from system settings.
@@ -108,7 +123,8 @@ fun HomeScreen(
     val guard by Guard.ui.collectAsState()
 
     Page("Scam Guard") {
-        Body("Listens to a phone call with you and tells you how likely it is to be a scam, while you are still on the call.")
+        Eyebrow("YOUR CALL COMPANION")
+        Text("Trust your instincts.\nCheck the call.", fontSize = 34.sp, lineHeight = 37.sp, fontFamily = FontFamily.Serif, color = Ink)
 
         if (guard.active) {
             InfoCard(tint = Color(0xFFE8F1F7)) {
@@ -117,24 +133,40 @@ fun HomeScreen(
             }
         }
 
-        InfoCard {
-            Body("On a call you are not sure about?", bold = true)
-            Body("Put the call on speaker, then tap the button.")
+        Column(
+            Modifier.fillMaxWidth().background(Brush.linearGradient(listOf(Color(0xFFDDF3EC), Color(0xFFEAF3F8), Color.White)), RoundedCornerShape(32.dp)).padding(22.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            ShieldArtwork(Modifier.fillMaxWidth().height(130.dp))
+            Eyebrow("PRIVATE BY DESIGN")
+            Text("A second pair of ears.", fontSize = 25.sp, fontFamily = FontFamily.Serif, color = Ink)
+            Text("Put the call on speaker. We’ll help you spot the warning signs.", fontSize = 16.sp, lineHeight = 22.sp, color = Neutral, textAlign = TextAlign.Center)
             BigButton("Start listening", onClick = onStartLive)
-            if (!status.callListening) {
-                Body("One more setting is needed before Scam Guard can hear a real phone call.", color = Amber)
-                OutlinedButton(onClick = onSetup) { Text("Finish setup", fontSize = 17.sp) }
+        }
+        if (!status.callListening) {
+            OutlinedButton(onClick = onSetup, modifier = Modifier.fillMaxWidth()) {
+                Text("Finish call setup  ›", fontSize = 16.sp, color = Amber)
             }
         }
-
-        InfoCard {
-            Body("See how it works", bold = true)
-            Body("Play a pretend scam call and watch the meter. Nothing real happens.")
-            OutlinedButton(onClick = onDemo, modifier = Modifier.fillMaxWidth()) { Text("Try a demo call", fontSize = 17.sp) }
+        Text("Your safety, simplified.", fontSize = 25.sp, fontFamily = FontFamily.Serif, color = Ink)
+        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            InfoCard(Modifier.weight(1f), tint = Color(0xFFE4EFF5)) {
+                Eyebrow("TRY IT")
+                Text("Hear a demo", fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Ink)
+                WaveTrace(Modifier.fillMaxWidth().height(28.dp))
+                OutlinedButton(onClick = onDemo) { Text("Play a call  ›") }
+            }
+            InfoCard(Modifier.weight(1f), tint = Color(0xFFE2F3ED)) {
+                Eyebrow("GET AHEAD")
+                Text("Know the signs", fontSize = 20.sp, fontWeight = FontWeight.SemiBold, color = Ink)
+                Text("Learn the patterns.", fontSize = 14.sp, color = Neutral)
+                OutlinedButton(onClick = onLearn) { Text("Explore  ›") }
+            }
         }
-
         InfoCard {
-            Body("Scams you should watch for", bold = true)
+            Eyebrow("MADE PERSONAL")
+            Text("What to watch for", fontSize = 24.sp, fontFamily = FontFamily.Serif, color = Ink)
             val p = profile
             if (p == null) {
                 Body("Answer a few questions so Scam Guard knows which scams are most likely to target you.")
@@ -143,7 +175,6 @@ fun HomeScreen(
                     Body("• ${t.type.plainName}" + if (t.level == Level.HIGH) " (most likely)" else "")
                 }
             }
-            BigButton("Learn how these scams work", onClick = onLearn)
             OutlinedButton(onClick = onProfile) { Text(if (p == null) "Set up my profile" else "Update my profile", fontSize = 17.sp) }
         }
 
@@ -161,10 +192,15 @@ fun HomeScreen(
 
 @Composable
 fun BigButton(text: String, color: Color = Color(0xFF15577A), onClick: () -> Unit) {
+    val interactions = remember { MutableInteractionSource() }
+    val pressed by interactions.collectIsPressedAsState()
+    val scale by animateFloatAsState(if (pressed) 0.97f else 1f, spring(dampingRatio = 0.65f), label = "buttonPress")
     Button(
-        onClick = onClick, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp),
+        onClick = onClick, modifier = Modifier.fillMaxWidth().heightIn(min = 56.dp).graphicsLayer { scaleX = scale; scaleY = scale },
+        interactionSource = interactions,
+        shape = RoundedCornerShape(22.dp),
         colors = ButtonDefaults.buttonColors(containerColor = color),
-    ) { Text(text, fontSize = 19.sp, fontWeight = FontWeight.SemiBold) }
+    ) { Text(text, fontSize = 17.sp, fontWeight = FontWeight.SemiBold, textAlign = TextAlign.Center) }
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -201,16 +237,29 @@ fun LiveScreen(onBack: () -> Unit) {
     val band = ui.score.band
     val copy = copyFor(band)
 
-    Page(if (ui.mode == Mode.DEMO) "Demo: ${ui.title}" else "This call", onBack = onBack) {
+    Page("Call guard", onBack = onBack) {
+        Eyebrow(if (ui.mode == Mode.DEMO) "DEMO · ${ui.title}" else "YOUR CURRENT CALL")
         if (ui.preparing) {
             InfoCard { Body("Getting ready… this takes a few seconds the first time.") }
         }
 
         Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) { RiskMeter(ui) }
+        if (ui.active) {
+            WaveTrace(Modifier.fillMaxWidth().height(24.dp), color = Teal, active = true)
+            Text("Listening on device", color = Neutral, fontSize = 13.sp, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
+        }
 
         InfoCard(tint = band.color().copy(alpha = 0.10f)) {
-            Text(copy.headline, fontSize = 26.sp, fontWeight = FontWeight.Bold, color = band.color())
+            Eyebrow(if (band == Band.RED) "HIGH RISK" else "CALL INSIGHT", color = band.color())
+            Text(copy.headline, fontSize = 29.sp, fontFamily = FontFamily.Serif, color = band.color())
             Body(copy.action, bold = band == Band.RED)
+        }
+        if (ui.active) {
+            BigButton("Stop listening") { CallGuardService.stop(context) }
+        } else if (ui.finished) {
+            Body(if (ui.mode == Mode.DEMO) "The demo call has ended." else "Listening has stopped. Nothing from this call was saved.", color = Neutral)
+        } else if (!ui.preparing) {
+            Body("Scam Guard is not listening. Go back and tap Start listening.", color = Neutral)
         }
 
         if (band == Band.RED) {
@@ -258,16 +307,6 @@ fun LiveScreen(onBack: () -> Unit) {
             }
         }
 
-        if (ui.active) {
-            OutlinedButton(onClick = { CallGuardService.stop(context) }, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
-                Text("Stop listening", fontSize = 18.sp)
-            }
-        } else if (ui.finished) {
-            Body(if (ui.mode == Mode.DEMO) "The demo call has ended." else "Listening has stopped. Nothing from this call was saved.", color = Neutral)
-        } else if (!ui.preparing) {
-            Body("Scam Guard is not listening. Go back and tap Start listening.", color = Neutral)
-        }
-
         if (ui.checks > 0) {
             if (reported) {
                 Body("Thank you. Only a count is kept on this phone, nothing about the call.", color = Neutral)
@@ -286,23 +325,30 @@ fun RiskMeter(ui: GuardUi) {
     val display = ui.score.display
     val band = ui.score.band
     val sweep by animateFloatAsState(targetValue = (display ?: 0) / 100f, animationSpec = tween(700), label = "meter")
-    val color = band.color()
-    val spoken = if (display == null) "Still listening, no score yet" else "About $display percent chance this is a scam"
-    Box(Modifier.size(240.dp).semantics { contentDescription = spoken }, contentAlignment = Alignment.Center) {
-        Canvas(Modifier.size(220.dp)) {
-            val stroke = Stroke(width = 26.dp.toPx(), cap = StrokeCap.Round)
-            val inset = stroke.width / 2
-            val arcSize = Size(size.width - stroke.width, size.height - stroke.width)
-            drawArc(Color(0xFFDCE3E9), 135f, 270f, false, Offset(inset, inset), arcSize, style = stroke)
+    val color by animateColorAsState(band.color(), tween(600), label = "riskColor")
+    val spoken = if (display == null) "Still listening, no score yet" else "Scam risk score $display out of 100"
+    Box(Modifier.size(252.dp).semantics { contentDescription = spoken }, contentAlignment = Alignment.Center) {
+        Canvas(Modifier.size(242.dp)) {
+            val stroke = Stroke(width = 12.dp.toPx(), cap = StrokeCap.Round)
+            val inset = 12.dp.toPx()
+            val arcSize = Size(size.width - inset * 2, size.height - inset * 2)
+            drawCircle(Brush.radialGradient(listOf(Color.White, color.copy(alpha = 0.08f))), radius = size.width / 2)
+            drawArc(color.copy(alpha = 0.1f), 135f, 270f, false, Offset(inset, inset), arcSize, style = stroke)
             if (display != null) drawArc(color, 135f, 270f * sweep.coerceAtLeast(0.02f), false, Offset(inset, inset), arcSize, style = stroke)
+            val radius = size.width / 2 - 28.dp.toPx()
+            for (tick in 0..40) {
+                val a = Math.toRadians((135 + tick * 270.0 / 40))
+                val length = if (tick % 5 == 0) 6.dp.toPx() else 3.dp.toPx()
+                drawLine(color.copy(alpha = 0.25f), Offset(center.x + cos(a).toFloat() * radius, center.y + sin(a).toFloat() * radius), Offset(center.x + cos(a).toFloat() * (radius - length), center.y + sin(a).toFloat() * (radius - length)), 1.dp.toPx())
+            }
         }
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             if (display == null) {
                 Text("…", fontSize = 56.sp, fontWeight = FontWeight.Bold, color = color)
                 Text("listening", fontSize = 16.sp, color = Neutral)
             } else {
-                Text("$display%", fontSize = 60.sp, fontWeight = FontWeight.Bold, color = color)
-                Text("chance this\nis a scam", fontSize = 16.sp, color = Neutral, textAlign = TextAlign.Center, lineHeight = 20.sp)
+                Text("$display%", fontSize = 64.sp, fontFamily = FontFamily.Serif, color = Ink)
+                Text("Scam risk", fontSize = 16.sp, color = Neutral, textAlign = TextAlign.Center, lineHeight = 20.sp)
             }
         }
     }
@@ -315,11 +361,14 @@ fun RiskMeter(ui: GuardUi) {
 @Composable
 fun DemoScreen(onBack: () -> Unit, onPlay: (DemoCall) -> Unit) {
     Page("Demo calls", onBack = onBack) {
-        Body("These are pretend calls made with computer voices. Android does not let any app hear a phone call directly, so a recording stands in for the call here. Scam Guard is not told which ones are scams: it listens and decides, exactly as it would on a real call.")
-        DemoCalls.all.forEach { call ->
-            InfoCard {
-                Body(call.title, bold = true)
+        Eyebrow("A SAFE PLACE TO PRACTISE")
+        Body("Hear how a call unfolds. These synthetic recordings pass through the real detector, which is not told their labels.")
+        DemoCalls.all.forEachIndexed { index, call ->
+            InfoCard(tint = if (index % 2 == 0) Color(0xFFEDF5F2) else Color.White) {
+                Eyebrow("CALL ${index + 1} · SYNTHETIC AUDIO")
+                Text(call.title, fontSize = 25.sp, fontFamily = FontFamily.Serif, color = Ink)
                 Body(call.blurb)
+                WaveTrace(Modifier.fillMaxWidth().height(24.dp))
                 BigButton("Play this call") { onPlay(call) }
             }
         }
@@ -346,6 +395,7 @@ fun SetupScreen(onBack: () -> Unit) {
     val askRole = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { refresh() }
 
     Page("Setup", onBack = onBack) {
+        Eyebrow("YOU STAY IN CONTROL")
         Body("Scam Guard asks for four things. Each one is explained here, and you can say no to any of them.")
 
         SetupStep(
@@ -380,6 +430,11 @@ fun SetupScreen(onBack: () -> Unit) {
         val saved by remember { ProfileRepository(context).judgeUrlFlow }.collectAsState(initial = null)
         var p1 by remember { mutableStateOf("") }
         val savedP1 by remember { ProfileRepository(context).phase1UrlFlow }.collectAsState(initial = null)
+        var advanced by remember { mutableStateOf(false) }
+        OutlinedButton(onClick = { advanced = !advanced }, modifier = Modifier.fillMaxWidth()) {
+            Text(if (advanced) "Hide developer settings" else "Developer settings")
+        }
+        AnimatedVisibility(visible = advanced) { Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         InfoCard {
             Body("For the team: profile service address", bold = true)
             Body("Now using: ${savedP1 ?: BuildConfig.PHASE1_URL}", color = Neutral)
@@ -396,6 +451,7 @@ fun SetupScreen(onBack: () -> Unit) {
                 Text(if (url.isBlank()) "Reset to built-in address" else "Save address", fontSize = 16.sp)
             }
         }
+        } }
     }
 }
 
@@ -420,6 +476,8 @@ fun PrivacyScreen(onBack: () -> Unit) {
     val wrong by remember { ProfileRepository(context).wrongCountFlow }.collectAsState(initial = 0)
     val profile by remember { ProfileRepository(context).profileFlow }.collectAsState(initial = null)
     Page("What this app keeps", onBack = onBack) {
+        Eyebrow("PRIVACY BY DESIGN")
+        Body("Your voice stays with you. Here is what is stored, and what is shared.")
         InfoCard {
             Body("Kept on this phone", bold = true)
             Body("• Your scam profile: a short list of scam types and how exposed you are. " + if (profile == null) "(none yet)" else "(${profile!!.threats.size} items)")
