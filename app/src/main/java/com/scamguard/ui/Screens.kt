@@ -434,6 +434,7 @@ fun SetupScreen(onBack: () -> Unit) {
         OutlinedButton(onClick = { advanced = !advanced }, modifier = Modifier.fillMaxWidth()) {
             Text(if (advanced) "Hide developer settings" else "Developer settings")
         }
+        Body("App version ${BuildConfig.VERSION_NAME}", color = Neutral)
         AnimatedVisibility(visible = advanced) { Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
         InfoCard {
             Body("For the team: profile service address", bold = true)

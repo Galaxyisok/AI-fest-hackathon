@@ -71,8 +71,7 @@ private enum class Step { CONSENT, QUESTIONS, SENDING, RESULT }
 fun onboardingErrorMessage(e: Throwable, url: String? = null): String = when {
     e is OnboardingClient.BadAddress ->
         "The profile service address is not a valid https address. Fix it in Setup, then Developer settings."
-    url != null && e is java.io.IOException && ServerAddress.addressProblem(url, "profile service") != null ->
-        ServerAddress.addressProblem(url, "profile service")!!
+    url != null && e is java.io.IOException -> ServerAddress.describeFailure(e, url, "profile service")
     e is OnboardingClient.Failure && e.status == 422 -> "Those answers were not accepted. Please choose again."
     e is OnboardingClient.Failure && e.status == 429 -> "The service is busy. Please try again in a minute."
     e is OnboardingClient.Failure -> "The profile service is not available right now. Please try again later."
@@ -105,8 +104,18 @@ fun Phase1Screen(onDone: () -> Unit, onLearn: () -> Unit = onDone) {
         scope.launch {
             var url: String? = null
             try {
-                url = repo.phase1UrlFlow.first() ?: BuildConfig.PHASE1_URL
-                val json = withContext(Dispatchers.IO) { OnboardingClient(url).generate(body, consent = true) }
+                // A saved address that is dead or malformed must not strand the app: fall back to the built-in one.
+                val urls = ServerAddress.candidates(repo.phase1UrlFlow.first(), BuildConfig.PHASE1_URL)
+                val json = withContext(Dispatchers.IO) {
+                    var last: Exception? = null
+                    for (u in urls) {
+                        url = u
+                        try { return@withContext OnboardingClient(u).generate(body, consent = true) }
+                        catch (e: java.io.IOException) { last = e }
+                        catch (e: OnboardingClient.BadAddress) { last = e }
+                    }
+                    throw last!!
+                }
                 val profile = VulnerabilityProfile.fromJson(json)    // strict: throws on anything outside the contract
                 repo.save(profile)                                   // saved before anything is shown as done
                 result = profile

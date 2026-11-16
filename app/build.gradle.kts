@@ -22,8 +22,8 @@ android {
         applicationId = "com.scamguard"
         minSdk = 29          // CallScreeningService role API
         targetSdk = 35
-        versionCode = 1
-        versionName = "0.1"
+        versionCode = 3
+        versionName = "0.3"
         // Default judge endpoint. Emulator -> host machine is 10.0.2.2. Override: -PjudgeUrl=https://<proxy>/api/judge
         val judgeUrl = (project.findProperty("judgeUrl") as String?) ?: "http://10.0.2.2:8787/api/judge"
         buildConfigField("String", "JUDGE_URL", "\"$judgeUrl\"")

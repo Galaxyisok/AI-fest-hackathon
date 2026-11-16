@@ -61,7 +61,7 @@ sealed interface JudgeOutcome {
  * Sends REDACTED TEXT to the judge proxy. This is the only network call in the app.
  * No audio, no phone number, no profile free-text ("why") is sent: only threat type + level.
  */
-class JudgeClient(private val url: String) {
+class JudgeClient(private val url: String, private val fallbackUrl: String? = null) {
 
     suspend fun judge(
         tier: Tier,
@@ -70,38 +70,45 @@ class JudgeClient(private val url: String) {
         prior: CallerPrior,
     ): JudgeOutcome = withContext(Dispatchers.IO) {
         val body = requestBody(tier, redactedTranscript, profile, prior)
-        try {
-            val conn = (URL(url).openConnection() as HttpURLConnection).apply {
-                requestMethod = "POST"
-                connectTimeout = 6_000
-                readTimeout = if (tier == Tier.DEEP) 30_000 else 15_000
-                doOutput = true
-                setRequestProperty("Content-Type", "application/json")
-            }
+        // A saved address that is dead or malformed must not strand the app: fall back to the built-in one.
+        val urls = listOfNotNull(url, fallbackUrl).distinct()
+        val badAddress = JudgeOutcome.Failed("The checking service address is not valid. Fix it in Setup, then Developer settings.")
+        var failed: JudgeOutcome = badAddress
+        for (u in urls) {
             try {
-                conn.outputStream.use { it.write(body.toByteArray()) }
-                when (val code = conn.responseCode) {
-                    200 -> {
-                        val text = conn.inputStream.bufferedReader().use { it.readText() }
-                        Verdict.parse(text, tier)?.let { JudgeOutcome.Ok(it) } ?: JudgeOutcome.NoVerdict
-                    }
-                    429 -> JudgeOutcome.Failed("The checking service is busy. Still listening.")
-                    else -> JudgeOutcome.Failed("The checking service had a problem ($code). Still listening.")
-                }
-            } finally {
-                conn.disconnect()
+                return@withContext post(u, body, tier)
+            } catch (e: java.net.MalformedURLException) {
+                failed = badAddress
+            } catch (e: java.io.IOException) {
+                // Names the server and what failed; a wrong or blocked address used to read as "no internet".
+                failed = JudgeOutcome.Failed(ServerAddress.describeFailure(e, u, "checking service"))
+            } catch (e: Exception) {
+                return@withContext JudgeOutcome.Failed("The checking service sent something unexpected. Still listening.")
             }
-        } catch (e: java.net.MalformedURLException) {
-            JudgeOutcome.Failed("The checking service address is not valid. Fix it in Setup, then Developer settings.")
-        } catch (e: java.io.IOException) {
-            // A wrong address used to read as "no internet" (10.0.2.2 on a real phone, or plain http,
-            // which Android refuses to send). Say what is actually wrong.
-            JudgeOutcome.Failed(
-                ServerAddress.addressProblem(url, "checking service")
-                    ?: "No internet, so this call cannot be checked right now."
-            )
-        } catch (e: Exception) {
-            JudgeOutcome.Failed("The checking service sent something unexpected. Still listening.")
+        }
+        failed
+    }
+
+    private fun post(u: String, body: String, tier: Tier): JudgeOutcome {
+        val conn = (URL(u).openConnection() as HttpURLConnection).apply {
+            requestMethod = "POST"
+            connectTimeout = 6_000
+            readTimeout = if (tier == Tier.DEEP) 30_000 else 15_000
+            doOutput = true
+            setRequestProperty("Content-Type", "application/json")
+        }
+        try {
+            conn.outputStream.use { it.write(body.toByteArray()) }
+            return when (val code = conn.responseCode) {
+                200 -> {
+                    val text = conn.inputStream.bufferedReader().use { it.readText() }
+                    Verdict.parse(text, tier)?.let { JudgeOutcome.Ok(it) } ?: JudgeOutcome.NoVerdict
+                }
+                429 -> JudgeOutcome.Failed("The checking service is busy. Still listening.")
+                else -> JudgeOutcome.Failed("The checking service had a problem ($code). Still listening.")
+            }
+        } finally {
+            conn.disconnect()
         }
     }
 

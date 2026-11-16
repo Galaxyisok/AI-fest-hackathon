@@ -49,5 +49,30 @@ object ServerAddress {
         else -> null
     }
 
+    /**
+     * Plain words for a network failure, naming the server and what failed, so a screenshot is
+     * enough to tell a blocked or dead address from a phone that is really offline.
+     * Only the configured host is shown, never anything from the exception.
+     */
+    fun describeFailure(e: java.io.IOException, url: String, service: String): String {
+        addressProblem(url, service)?.let { return it }
+        val h = host(url) ?: "the server"
+        return when (e) {
+            is java.net.UnknownHostException ->
+                "This phone could not find the $service ($h). Check your internet, or switch between Wi-Fi and mobile data: some networks block it."
+            is javax.net.ssl.SSLException ->
+                "This network refused a secure connection to the $service ($h). Switch between Wi-Fi and mobile data and try again."
+            is java.net.SocketTimeoutException ->
+                "The $service ($h) took too long to answer. Please try again."
+            is java.net.ConnectException ->
+                "The $service ($h) could not be reached. Please try again."
+            else -> "The connection to the $service ($h) dropped. Check your internet and try again."
+        }
+    }
+
+    /** Addresses to try in order: the one saved in Setup (if any), then the one built into the app. */
+    fun candidates(saved: String?, builtIn: String): List<String> =
+        listOfNotNull(saved?.trim()?.takeIf { it.isNotEmpty() }, builtIn).distinct()
+
     private fun host(url: String): String? = runCatching { URI(url.trim()).host }.getOrNull()
 }

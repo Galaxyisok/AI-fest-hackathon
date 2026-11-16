@@ -97,14 +97,14 @@ class CallGuardService : Service() {
                 val repo = ProfileRepository(this@CallGuardService)
                 // Demos fall back to the sample profile so they work on a fresh install.
                 val profile = repo.load() ?: if (mode == Mode.DEMO) VulnerabilityProfile.MOCK else null
-                val url = repo.judgeUrlFlow.first() ?: BuildConfig.JUDGE_URL
+                val savedUrl = repo.judgeUrlFlow.first()
                 val prior = when {
                     mode == Mode.LIVE -> Guard.takePrior(SystemClock.elapsedRealtime())
                     asset != null -> DemoCalls.priorFor(asset)
                     else -> CallerPrior()
                 }
                 val model = VoskEngine.model(this@CallGuardService)
-                val client = JudgeClient(url)
+                val client = JudgeClient(savedUrl ?: BuildConfig.JUDGE_URL, BuildConfig.JUDGE_URL)
                 val session = GuardSession(this, { tier, text -> client.judge(tier, text, profile, prior) }, profile, prior, Guard.ui)
                 Guard.ui.update { it.copy(preparing = false) }
 

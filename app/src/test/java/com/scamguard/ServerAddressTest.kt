@@ -31,7 +31,44 @@ class ServerAddressTest {
     @Test fun realAddressesKeepTheOrdinaryMessages() {
         val real = "https://example.org/v1/onboarding/profile"
         assertTrue(onboardingErrorMessage(java.net.SocketTimeoutException(), real).contains("too long"))
-        assertTrue(onboardingErrorMessage(java.net.UnknownHostException("x"), real).contains("No internet"))
+        val dns = onboardingErrorMessage(java.net.UnknownHostException("secret.thing"), real)
+        assertTrue(dns, dns.contains("could not find") && dns.contains("example.org"))
+        assertFalse(dns.contains("secret"))
+        assertTrue(onboardingErrorMessage(javax.net.ssl.SSLHandshakeException("x"), real).contains("secure connection"))
+    }
+
+    /** The 18:34 screenshots: a dead tunnel address read as "No internet". It must fall back, or name the host. */
+    @Test fun deadSavedJudgeAddressFallsBackToTheBuiltInOne() = runBlocking {
+        val server = java.net.ServerSocket(0)
+        val port = server.localPort
+        val t = Thread {
+            server.accept().use { sock ->
+                val input = sock.getInputStream().bufferedReader()
+                var len = 0
+                while (true) {
+                    val l = input.readLine() ?: break
+                    if (l.isEmpty()) break
+                    if (l.lowercase().startsWith("content-length:")) len = l.substring(15).trim().toInt()
+                }
+                repeat(len) { input.read() }
+                val body = "{\"unavailable\":true}"
+                sock.getOutputStream().write("HTTP/1.1 200 OK\r\nContent-Type: application/json\r\nContent-Length: ${body.length}\r\nConnection: close\r\n\r\n$body".toByteArray())
+            }
+        }.apply { start() }
+        val out = JudgeClient("https://dead-tunnel.invalid/api/judge", "http://localhost:$port/api/judge")
+            .judge(Tier.FAST, "hello", null, CallerPrior())
+        t.join(5000); server.close()
+        assertEquals(JudgeOutcome.NoVerdict, out)   // reached the fallback server and parsed its answer
+
+        val none = JudgeClient("https://dead-tunnel.invalid/api/judge").judge(Tier.FAST, "hello", null, CallerPrior())
+        val msg = (none as JudgeOutcome.Failed).userMessage
+        assertTrue(msg, msg.contains("dead-tunnel.invalid") && !msg.contains("No internet"))
+    }
+
+    @Test fun savedAddressIsTriedFirstThenBuiltIn() {
+        assertEquals(listOf("https://a/x", "https://b/x"), ServerAddress.candidates(" https://a/x ", "https://b/x"))
+        assertEquals(listOf("https://b/x"), ServerAddress.candidates(null, "https://b/x"))
+        assertEquals(listOf("https://b/x"), ServerAddress.candidates("https://b/x", "https://b/x"))
     }
 
     @Test fun aBadAddressIsNotBlamedOnTheServer() {
