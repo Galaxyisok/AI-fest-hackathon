@@ -1,5 +1,6 @@
 package com.scamguard.judge
 
+import com.scamguard.net.ServerAddress
 import com.scamguard.profile.VulnerabilityProfile
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -90,8 +91,15 @@ class JudgeClient(private val url: String) {
             } finally {
                 conn.disconnect()
             }
+        } catch (e: java.net.MalformedURLException) {
+            JudgeOutcome.Failed("The checking service address is not valid. Fix it in Setup, then Developer settings.")
         } catch (e: java.io.IOException) {
-            JudgeOutcome.Failed("No internet, so this call cannot be checked right now.")
+            // A wrong address used to read as "no internet" (10.0.2.2 on a real phone, or plain http,
+            // which Android refuses to send). Say what is actually wrong.
+            JudgeOutcome.Failed(
+                ServerAddress.addressProblem(url, "checking service")
+                    ?: "No internet, so this call cannot be checked right now."
+            )
         } catch (e: Exception) {
             JudgeOutcome.Failed("The checking service sent something unexpected. Still listening.")
         }

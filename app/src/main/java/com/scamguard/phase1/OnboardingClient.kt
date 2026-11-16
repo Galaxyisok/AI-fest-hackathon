@@ -8,16 +8,19 @@ import java.net.URL
  * No API key, logging, persistence, retries, or shared profile types live here.
  */
 class OnboardingClient(endpoint: String) {
-    private val url = URL(endpoint).also {
+    private val url = (try { URL(endpoint.trim()) } catch (e: java.net.MalformedURLException) { throw BadAddress() }).also {
         // HTTPS only. The one exception is the Android emulator's alias for the developer's own
         // machine, so the backend can be run locally during development (integration change).
         val devLoopback = it.protocol == "http" && it.host in setOf("10.0.2.2", "localhost", "127.0.0.1")
-        require((it.protocol == "https" || devLoopback) && it.userInfo == null && it.query == null && it.ref == null) {
-            "Onboarding endpoint must be an https URL"
+        if (!((it.protocol == "https" || devLoopback) && it.userInfo == null && it.query == null && it.ref == null)) {
+            throw BadAddress()
         }
     }
 
     class Failure(val status: Int) : Exception("Onboarding could not be completed")
+
+    /** The configured address itself is unusable; nothing was sent. */
+    class BadAddress : IllegalArgumentException("Onboarding endpoint must be an https URL")
 
     fun generate(answers: JSONObject, consent: Boolean): String {
         require(consent) { "Consent is required" }

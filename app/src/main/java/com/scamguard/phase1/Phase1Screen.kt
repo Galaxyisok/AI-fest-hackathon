@@ -13,6 +13,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import com.scamguard.net.ServerAddress
 import com.scamguard.ui.Eyebrow
 import com.scamguard.ui.Ocean
 import com.scamguard.ui.Mint
@@ -67,7 +68,11 @@ import kotlinx.coroutines.withContext
 private enum class Step { CONSENT, QUESTIONS, SENDING, RESULT }
 
 /** Plain words for what went wrong. Never shows the server's own message or what was sent. */
-fun onboardingErrorMessage(e: Throwable): String = when {
+fun onboardingErrorMessage(e: Throwable, url: String? = null): String = when {
+    e is OnboardingClient.BadAddress ->
+        "The profile service address is not a valid https address. Fix it in Setup, then Developer settings."
+    url != null && e is java.io.IOException && ServerAddress.addressProblem(url, "profile service") != null ->
+        ServerAddress.addressProblem(url, "profile service")!!
     e is OnboardingClient.Failure && e.status == 422 -> "Those answers were not accepted. Please choose again."
     e is OnboardingClient.Failure && e.status == 429 -> "The service is busy. Please try again in a minute."
     e is OnboardingClient.Failure -> "The profile service is not available right now. Please try again later."
@@ -98,8 +103,9 @@ fun Phase1Screen(onDone: () -> Unit, onLearn: () -> Unit = onDone) {
         error = null
         step = Step.SENDING
         scope.launch {
+            var url: String? = null
             try {
-                val url = repo.phase1UrlFlow.first() ?: BuildConfig.PHASE1_URL
+                url = repo.phase1UrlFlow.first() ?: BuildConfig.PHASE1_URL
                 val json = withContext(Dispatchers.IO) { OnboardingClient(url).generate(body, consent = true) }
                 val profile = VulnerabilityProfile.fromJson(json)    // strict: throws on anything outside the contract
                 repo.save(profile)                                   // saved before anything is shown as done
@@ -108,7 +114,7 @@ fun Phase1Screen(onDone: () -> Unit, onLearn: () -> Unit = onDone) {
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
-                error = onboardingErrorMessage(e)
+                error = onboardingErrorMessage(e, url)
                 step = Step.QUESTIONS                                // answers must be re-entered; nothing was kept
             } finally {
                 body.keys().asSequence().toList().forEach { body.remove(it) }

@@ -439,7 +439,7 @@ fun SetupScreen(onBack: () -> Unit) {
             Body("For the team: profile service address", bold = true)
             Body("Now using: ${savedP1 ?: BuildConfig.PHASE1_URL}", color = Neutral)
             OutlinedTextField(value = p1, onValueChange = { p1 = it }, singleLine = true, label = { Text("https://…/v1/onboarding/profile") }, modifier = Modifier.fillMaxWidth())
-            OutlinedButton(onClick = { scope.launch { ProfileRepository(context).setPhase1Url(p1); p1 = "" } }) {
+            OutlinedButton(onClick = { scope.launch { ProfileRepository(context).setPhase1Url(com.scamguard.net.ServerAddress.normalize(p1, com.scamguard.net.ServerAddress.PROFILE_PATH)); p1 = "" } }) {
                 Text(if (p1.isBlank()) "Reset to built-in address" else "Save address", fontSize = 16.sp)
             }
         }
@@ -447,7 +447,7 @@ fun SetupScreen(onBack: () -> Unit) {
             Body("For the team: checking service address", bold = true)
             Body("Now using: ${saved ?: BuildConfig.JUDGE_URL}", color = Neutral)
             OutlinedTextField(value = url, onValueChange = { url = it }, singleLine = true, label = { Text("https://…/api/judge") }, modifier = Modifier.fillMaxWidth())
-            OutlinedButton(onClick = { scope.launch { ProfileRepository(context).setJudgeUrl(url); url = "" } }) {
+            OutlinedButton(onClick = { scope.launch { ProfileRepository(context).setJudgeUrl(com.scamguard.net.ServerAddress.normalize(url, com.scamguard.net.ServerAddress.JUDGE_PATH)); url = "" } }) {
                 Text(if (url.isBlank()) "Reset to built-in address" else "Save address", fontSize = 16.sp)
             }
         }
