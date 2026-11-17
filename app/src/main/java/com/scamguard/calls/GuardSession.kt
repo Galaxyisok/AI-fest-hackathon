@@ -166,6 +166,7 @@ class GuardSession(
             try {
                 val out = judge(Tier.DEEP, redacted().text)
                 if (out is JudgeOutcome.Ok) {
+                    if (out.verdict.confidence != "low") policy.onDeepVerdict(out.verdict.probability.toDouble())
                     apply(out.verdict)
                     ui.update { it.copy(deepChecks = it.deepChecks + 1) }
                 }

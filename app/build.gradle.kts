@@ -25,8 +25,8 @@ android {
         //   ./gradlew assembleRelease -Pabis=arm64-v8a,armeabi-v7a
         val abis = ((project.findProperty("abis") as String?) ?: "arm64-v8a,armeabi-v7a,x86_64").split(",")
         ndk { abiFilters += abis }
-        versionCode = 5
-        versionName = "0.5"
+        versionCode = 6
+        versionName = "0.6"
         // Default judge endpoint. Emulator -> host machine is 10.0.2.2. Override: -PjudgeUrl=https://<proxy>/api/judge
         val judgeUrl = (project.findProperty("judgeUrl") as String?) ?: "http://10.0.2.2:8787/api/judge"
         buildConfigField("String", "JUDGE_URL", "\"$judgeUrl\"")

@@ -124,7 +124,11 @@ async function replay(item) {
         if (fast.confidence !== 'low' && policy.shouldRunDeep(nowMs, last.raw, fast.scam_probability)) {
           policy.onDeepStarted(nowMs, fast.scam_probability);
           const deep = await callJudge('deep', soFar, item.prior);
-          if (deep) { last = fusion.update(toFusion(deep, 'deep')); if (deep.confidence !== 'low') reason = deep.reason; }
+          if (deep) {
+            if (deep.confidence !== 'low') policy.onDeepVerdict(deep.scam_probability);
+            last = fusion.update(toFusion(deep, 'deep'));
+            if (deep.confidence !== 'low') reason = deep.reason;
+          }
         }
       }
     } else {

@@ -151,6 +151,39 @@ class PipelineTest {
 
     // ---- CascadePolicy ----
 
+    @Test fun theDeepModelIsNotPaidForAgainOnceItHasCalledTheCallAScam() = runTest {
+        val ui = MutableStateFlow(GuardUi())
+        val tiers = ArrayList<Tier>()
+        var fastP = 70
+        val s = GuardSession(this, { tier, _ ->
+            tiers += tier
+            JudgeOutcome.Ok(verdict(tier, if (tier == Tier.DEEP) 92 else fastP))
+        }, null, CallerPrior(), ui, { testScheduler.currentTime })
+        s.onEvent(SttEvent.Final("this is the police you are under digital arrest do not tell anyone"))
+        advanceUntilIdle()
+        assertEquals(1, tiers.count { it == Tier.DEEP })
+        assertEquals(Band.RED, ui.value.score.band)
+        // the fast score swings a long way and a long time passes: both used to wake the deep model again
+        fastP = 30
+        testScheduler.advanceTimeBy(120_000)
+        s.onEvent(SttEvent.Final("transfer the money to the safe account now and stay on the line"))
+        advanceUntilIdle()
+        fastP = 95
+        s.onEvent(SttEvent.Final("read me the code we have sent to your phone immediately"))
+        advanceUntilIdle()
+        assertEquals(1, tiers.count { it == Tier.DEEP })
+        assertEquals(Band.RED, ui.value.score.band)      // and the warning never came down
+    }
+
+    @Test fun aDeepVerdictBelowSettledStillAllowsAnotherLook() {
+        val p = CascadePolicy()
+        assertTrue(p.shouldRunDeep(0, 40.0, 40.0))
+        p.onDeepStarted(0, 40.0); p.onDeepVerdict(50.0)
+        assertTrue(p.shouldRunDeep(1_000, 60.0, 70.0))      // fast moved 30 points: look again
+        p.onDeepStarted(1_000, 70.0); p.onDeepVerdict(90.0)
+        assertFalse(p.shouldRunDeep(500_000, 95.0, 20.0))   // settled: never again
+    }
+
     @Test fun cascadePolicy() {
         val p = CascadePolicy()
         assertFalse(p.shouldRunDeep(0, 10.0, 10.0))
