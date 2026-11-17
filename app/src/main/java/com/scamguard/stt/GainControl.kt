@@ -8,7 +8,7 @@ import kotlin.math.min
  * Evens out loudness before speech recognition. On a real call the caller's voice reaches the
  * microphone from the loudspeaker, far quieter than the phone owner's own voice, and the speech
  * model's accuracy collapses on quiet audio (measured on real Indian-English speech at -20 dB:
- * 91% word errors without this, 66% with it; see eval/results.md).
+ * see eval/results.md).
  *
  * Works on 100 ms chunks of 16-bit PCM, in place. It follows the recent peak level, turns quiet
  * audio up (never down below the original, never more than [MAX_GAIN] times), eases the gain

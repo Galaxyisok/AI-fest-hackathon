@@ -12,6 +12,11 @@ import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.media.AudioAttributes
 import android.media.AudioFormat
+import android.media.AudioManager
+import android.media.audiofx.AcousticEchoCanceler
+import android.media.audiofx.AudioEffect
+import android.media.audiofx.AutomaticGainControl
+import android.media.audiofx.NoiseSuppressor
 import android.media.AudioRecord
 import android.media.AudioTrack
 import android.media.MediaRecorder
@@ -29,7 +34,7 @@ import com.scamguard.judge.JudgeClient
 import com.scamguard.profile.ProfileRepository
 import com.scamguard.profile.VulnerabilityProfile
 import com.scamguard.stt.GainControl
-import com.scamguard.stt.VoskEngine
+import com.scamguard.stt.SpeechEngine
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -104,13 +109,13 @@ class CallGuardService : Service() {
                     asset != null -> DemoCalls.priorFor(asset)
                     else -> CallerPrior()
                 }
-                val model = VoskEngine.model(this@CallGuardService)
+                val model = SpeechEngine.model(this@CallGuardService)
                 val client = JudgeClient(savedUrl ?: BuildConfig.JUDGE_URL, BuildConfig.JUDGE_URL)
                 val session = GuardSession(this, { tier, text -> client.judge(tier, text, profile, prior) }, profile, prior, Guard.ui)
                 Guard.ui.update { it.copy(preparing = false) }
 
                 val watcher = launch { watchForAlerts() }
-                VoskEngine.Stream(model).use { stt ->
+                SpeechEngine.Stream(model).use { stt ->
                     if (mode == Mode.LIVE) runMicrophone(stt, session) else runRecording(asset!!, stt, session)
                     stt.finish()?.let { session.onEvent(it) }
                 }
@@ -139,31 +144,49 @@ class CallGuardService : Service() {
 
     // ---- live: speakerphone microphone ------------------------------------------------------
 
-    private suspend fun runMicrophone(stt: VoskEngine.Stream, session: GuardSession) {
+    private suspend fun runMicrophone(stt: SpeechEngine.Stream, session: GuardSession) {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
             Guard.ui.update { it.copy(problem = "Scam Guard needs the microphone to hear the call. Allow it in Setup.") }
             return
         }
-        val min = AudioRecord.getMinBufferSize(VoskEngine.SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
-        // VOICE_RECOGNITION: no echo cancellation. Echo cancellation would remove exactly the
-        // caller's voice coming out of the loudspeaker, which is the part we need to hear.
-        @Suppress("MissingPermission")
-        val rec = AudioRecord(
-            MediaRecorder.AudioSource.VOICE_RECOGNITION, VoskEngine.SAMPLE_RATE,
-            AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, maxOf(min, CHUNK * 4),
-        )
-        if (rec.state != AudioRecord.STATE_INITIALIZED) {
-            rec.release()
+        Guard.micMode.value = MicMode.from(ProfileRepository(this).micModeFlow.first())
+        val audio = getSystemService(AudioManager::class.java)
+        // The caller is heard through the loudspeaker, so the louder the call, the better. Restored afterwards.
+        val volumeBefore = runCatching { audio.getStreamVolume(AudioManager.STREAM_VOICE_CALL) }.getOrNull()
+        runCatching {
+            if (audio.mode == AudioManager.MODE_IN_CALL || audio.mode == AudioManager.MODE_IN_COMMUNICATION) {
+                audio.setStreamVolume(AudioManager.STREAM_VOICE_CALL, audio.getStreamMaxVolume(AudioManager.STREAM_VOICE_CALL), 0)
+            }
+        }
+        var mode = Guard.micMode.value
+        var mic = openMic(mode, audio) ?: openMic(MicMode.STANDARD, audio)
+        if (mic == null) {
             Guard.ui.update { it.copy(problem = "The microphone is busy or unavailable.") }
             return
         }
         val buf = ByteArray(CHUNK)
-        val level = GainControl()   // the caller's voice comes out of the loudspeaker, much quieter than the owner's
+        var level = GainControl()   // the caller's voice comes out of the loudspeaker, much quieter than the owner's
         var lastSound = SystemClock.elapsedRealtime()
         try {
-            rec.startRecording()
+            mic.rec.startRecording()
             withContext(Dispatchers.IO) {
                 while (isActive) {
+                    // The user can try another microphone path mid-call; the transcript carries on.
+                    val wanted = Guard.micMode.value
+                    if (wanted != mode) {
+                        mic!!.close()
+                        mode = wanted
+                        mic = openMic(mode, audio) ?: openMic(MicMode.STANDARD, audio)
+                        val m = mic
+                        if (m == null) {
+                            Guard.ui.update { it.copy(problem = "The microphone is busy or unavailable.") }
+                            break
+                        }
+                        m.rec.startRecording()
+                        level = GainControl()
+                        lastSound = SystemClock.elapsedRealtime()
+                    }
+                    val rec = mic!!.rec
                     val n = rec.read(buf, 0, buf.size)
                     if (n <= 0) continue
                     // During a phone call Android feeds ordinary apps pure silence. Say so instead
@@ -179,22 +202,58 @@ class CallGuardService : Service() {
                 }
             }
         } finally {
+            mic?.close()
+            if (volumeBefore != null) runCatching { audio.setStreamVolume(AudioManager.STREAM_VOICE_CALL, volumeBefore, 0) }
+        }
+    }
+
+    /** An open recorder with the phone's own voice processing switched off for it. */
+    private class Mic(val rec: AudioRecord, private val effects: List<AudioEffect>) {
+        fun close() {
             runCatching { rec.stop() }
+            effects.forEach { runCatching { it.release() } }
             rec.release()
         }
     }
 
+    private fun openMic(mode: MicMode, audio: AudioManager): Mic? {
+        val rawSupported = audio.getProperty(AudioManager.PROPERTY_SUPPORT_AUDIO_SOURCE_UNPROCESSED) == "true"
+        val source = when (mode) {
+            MicMode.AUTO -> if (rawSupported) MediaRecorder.AudioSource.UNPROCESSED else MediaRecorder.AudioSource.VOICE_RECOGNITION
+            MicMode.STANDARD -> MediaRecorder.AudioSource.VOICE_RECOGNITION
+            MicMode.RAW -> MediaRecorder.AudioSource.UNPROCESSED
+            MicMode.CAMERA -> MediaRecorder.AudioSource.CAMCORDER
+            MicMode.PLAIN -> MediaRecorder.AudioSource.MIC
+        }
+        val min = AudioRecord.getMinBufferSize(SpeechEngine.SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT)
+        @Suppress("MissingPermission")
+        val rec = runCatching {
+            AudioRecord(source, SpeechEngine.SAMPLE_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT, maxOf(min, CHUNK * 4))
+        }.getOrNull() ?: return null
+        if (rec.state != AudioRecord.STATE_INITIALIZED) { rec.release(); return null }
+        // Echo cancellation exists to remove what the loudspeaker plays, which here is the caller: the
+        // one voice this app most needs. Noise suppression and the phone's own gain also hurt recognition.
+        val id = rec.audioSessionId
+        val effects = listOfNotNull(
+            runCatching { if (AcousticEchoCanceler.isAvailable()) AcousticEchoCanceler.create(id) else null }.getOrNull(),
+            runCatching { if (NoiseSuppressor.isAvailable()) NoiseSuppressor.create(id) else null }.getOrNull(),
+            runCatching { if (AutomaticGainControl.isAvailable()) AutomaticGainControl.create(id) else null }.getOrNull(),
+        )
+        effects.forEach { runCatching { it.enabled = false } }
+        return Mic(rec, effects)
+    }
+
     // ---- demo: a bundled recording through the same pipeline --------------------------------
 
-    private suspend fun runRecording(asset: String, stt: VoskEngine.Stream, session: GuardSession) {
+    private suspend fun runRecording(asset: String, stt: SpeechEngine.Stream, session: GuardSession) {
         val pcm = assets.open(asset).use { readWavPcm(it) }
         val track = AudioTrack.Builder()
             .setAudioAttributes(AudioAttributes.Builder().setUsage(AudioAttributes.USAGE_MEDIA).setContentType(AudioAttributes.CONTENT_TYPE_SPEECH).build())
-            .setAudioFormat(AudioFormat.Builder().setSampleRate(VoskEngine.SAMPLE_RATE).setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
+            .setAudioFormat(AudioFormat.Builder().setSampleRate(SpeechEngine.SAMPLE_RATE).setEncoding(AudioFormat.ENCODING_PCM_16BIT).setChannelMask(AudioFormat.CHANNEL_OUT_MONO).build())
             .setTransferMode(AudioTrack.MODE_STREAM)
             .setBufferSizeInBytes(CHUNK * 4)
             .build()
-        val bytesPerMs = VoskEngine.SAMPLE_RATE * 2 / 1000
+        val bytesPerMs = SpeechEngine.SAMPLE_RATE * 2 / 1000
         val started = SystemClock.elapsedRealtime()
         try {
             track.play()
@@ -312,7 +371,7 @@ class CallGuardService : Service() {
                 val size = le32(pos + 4)
                 val body = pos + 8
                 if (id == "fmt ") {
-                    formatOk = le16(body) == 1 && le16(body + 2) == 1 && le32(body + 4) == VoskEngine.SAMPLE_RATE && le16(body + 14) == 16
+                    formatOk = le16(body) == 1 && le16(body + 2) == 1 && le32(body + 4) == SpeechEngine.SAMPLE_RATE && le16(body + 14) == 16
                 } else if (id == "data") {
                     require(formatOk) { "recording must be 16 kHz mono 16-bit PCM" }
                     return all.copyOfRange(body, minOf(all.size, body + size))

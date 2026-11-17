@@ -20,6 +20,21 @@ import kotlinx.coroutines.launch
 
 enum class Mode { LIVE, DEMO }
 
+/**
+ * Where the live audio comes from. During a call the phone's own processing (echo cancellation,
+ * noise suppression) is tuned to REMOVE the caller's voice coming out of the loudspeaker, and how
+ * much of it reaches an app differs by phone model. So the path is switchable while listening.
+ */
+enum class MicMode(val label: String) {
+    AUTO("Auto"),            // raw microphone if the phone offers one, otherwise STANDARD
+    STANDARD("Standard"),    // VOICE_RECOGNITION
+    RAW("Raw"),              // UNPROCESSED: no echo cancellation, no noise suppression
+    CAMERA("Camera mic"),    // CAMCORDER: usually a different physical microphone, outside the call processing
+    PLAIN("Basic");          // MIC
+
+    companion object { fun from(name: String?) = entries.firstOrNull { it.name == name } ?: AUTO }
+}
+
 /** Everything the screen shows. Held in memory only; gone when the call ends. */
 data class GuardUi(
     val active: Boolean = false,
@@ -41,6 +56,7 @@ data class GuardUi(
 /** Process-wide handle shared by the service (writer) and the screens (readers). */
 object Guard {
     val ui = MutableStateFlow(GuardUi())
+    val micMode = MutableStateFlow(MicMode.AUTO)
 
     /** Set by the pre-answer caller check; used if the user then starts listening. Never written to disk. */
     @Volatile var pendingPrior: CallerPrior? = null

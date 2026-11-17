@@ -267,3 +267,20 @@ Svarah is hard (place names, spontaneous speech) and the phone conditions are si
 **Detector on speech-recognised audio (10 held-out calls), run twice on the same day:** en-IN transcripts 5/5 caught, 1/5 false alarms (t-g19, peak 65); en-US transcripts 5/5 caught, 1/5 false alarms (t-g03, peak 60). The earlier single run reported 0/5. So the false-alarm count on this small audio set moves between 0 and 1 from run to run, on genuine official-sounding calls near the 60 line; it did not change with the speech model. Not tuned on.
 
 Not measured: the level control on a real handset during a real call (unit-tested and benchmarked through a Python mirror only).
+
+## Speech engine change (2026-11-17, app 0.5)
+
+Report from two real phones: the owner's voice transcribes well, the caller's (through the loudspeaker) barely at all. Compared on-device engines on 60 real Indian-English recordings (Svarah; `eval/stt_bench_engines.py`), including a simulation of a caller heard through a loudspeaker (phone band, 26 dB quieter, room echo, noise, then the app's level control). Word error rate:
+
+| Engine (all on-device, streaming) | Clean | Phone band + noise | Caller on speaker (simulated) |
+|---|---|---|---|
+| Vosk small en-IN 0.4 (was shipped) | 39.7% | 66.6% | 98.0% |
+| **sherpa-onnx Zipformer "Kroko" 2025-08 (now shipped)** | **23.1%** | **28.0%** | **72.3%** |
+| sherpa-onnx Zipformer 20M int8 | 61.9% | 82.4% | 99.0% |
+| sherpa-onnx Zipformer 2023-06-26 int8 | 42.0% | 68.9% | 98.4% |
+| NeMo fast-conformer CTC 480 ms int8 | 29.7% | 46.8% | 87.8% |
+
+On the project's own synthetic audio with Kroko: demo clips 6% (was 8%), held-out audio subset 3% (was 11%).
+The "caller on speaker" condition is a simulation built by us, not a recording from a handset, and is deliberately harsh; it ranks engines, it does not predict a real phone. 72% is still poor: a better recogniser cannot recover speech the phone's echo canceller has removed, which is why 0.5 also changes how audio is captured (raw microphone when the phone offers one, echo cancellation and noise suppression switched off for the recording, call volume raised while listening, and a microphone switch on the call screen). None of the capture changes has been measured on a handset.
+
+The detector was NOT re-measured with the new engine: the API account ran out of credit during this work.

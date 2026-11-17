@@ -94,7 +94,8 @@ docs/       profile-contract.md, threat-model.md, privacy.md, limits.md, slides-
 | Anthropic Claude Haiku 5.5 and Sonnet 5.5 (API) | The call judge | Commercial API |
 | Anthropic Claude Haiku 5.5 (API) | Phase 1 profile building | Commercial API |
 | FastAPI, Pydantic, httpx, uvicorn | Phase 1 backend | MIT / BSD |
-| [Vosk](https://alphacephei.com/vosk/) and `vosk-model-small-en-in-0.4` (Indian English) | On-device speech-to-text | Apache-2.0 |
+| [sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) 2.0.1 | On-device speech-to-text engine | Apache-2.0 |
+| Streaming Zipformer "Kroko" English 2025-08-06 ([Banafo/Kroko-ASR](https://huggingface.co/Banafo/Kroko-ASR)) | On-device speech model | CC-BY-SA (community model) |
 | JNA | Required by Vosk | Apache-2.0 / LGPL |
 | Jetpack Compose, AndroidX, Kotlin coroutines | App | Apache-2.0 |
 | `@anthropic-ai/sdk` | Proxy | MIT |

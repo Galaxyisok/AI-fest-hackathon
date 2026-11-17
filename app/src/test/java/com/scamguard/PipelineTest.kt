@@ -247,6 +247,18 @@ class PipelineTest {
         assertTrue("gain ${quiet.currentGain}", quiet.currentGain < 1.8)
     }
 
+    @Test fun recognisedTextIsMadePlainForTheRedactor() {
+        assertEquals("it says four eight two nine", com.scamguard.stt.SpeechEngine.normalise("It says four, eight two nine."))
+        assertEquals("your kyc has expired i can't wait", com.scamguard.stt.SpeechEngine.normalise(" Your KYC has expired -- I can't wait! "))
+        assertEquals("", com.scamguard.stt.SpeechEngine.normalise(" ... "))
+        // and what comes out is redacted like any other transcript
+        val r = com.scamguard.judge.PiiRedactor.redact(com.scamguard.stt.SpeechEngine.normalise("Okay, one second. It says four, eight two nine") + "\n" + com.scamguard.stt.SpeechEngine.normalise("one three"))
+        assertTrue(r.text, r.text.contains("[6-DIGIT NUMBER]"))
+        assertFalse(r.text, r.text.contains("eight"))
+        val f = com.scamguard.stt.SpeechEngine.toFloats(byteArrayOf(0, 0x40, 0, 0xc0.toByte(), 0xff.toByte(), 0x7f), 6)
+        assertEquals(0.5f, f[0], 1e-4f); assertEquals(-0.5f, f[1], 1e-4f); assertEquals(1f, f[2], 1e-3f)
+    }
+
     @Test fun digitalSilence() {
         assertTrue(CallGuardService.isDigitalSilence(ByteArray(3200), 3200))
         assertTrue(CallGuardService.isDigitalSilence(byteArrayOf(1, 0, -1, -1, 2, 0), 6))      // +1, -1, +2

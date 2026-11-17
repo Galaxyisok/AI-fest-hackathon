@@ -52,6 +52,10 @@ class ProfileRepository(context: Context) {
     val onboardingOfferedFlow: Flow<Boolean> = store.data.map { it[ONBOARDING_OFFERED] ?: false }
     suspend fun setOnboardingOffered() { store.edit { it[ONBOARDING_OFFERED] = true } }
 
+    /** Which microphone path hears the caller best differs by phone; the choice made on the call screen is kept. */
+    val micModeFlow: Flow<String?> = store.data.map { it[MIC_MODE] }
+    suspend fun setMicMode(mode: String) { store.edit { it[MIC_MODE] = mode } }
+
     val wrongCountFlow: Flow<Int> = store.data.map { it[WRONG_COUNT] ?: 0 }
     suspend fun countWrong() { store.edit { it[WRONG_COUNT] = (it[WRONG_COUNT] ?: 0) + 1 } }
 
@@ -60,6 +64,7 @@ class ProfileRepository(context: Context) {
         val JUDGE_URL = stringPreferencesKey("judge_url")
         val PHASE1_URL = stringPreferencesKey("phase1_url")
         val WRONG_COUNT = intPreferencesKey("wrong_count")
+        val MIC_MODE = stringPreferencesKey("mic_mode")
         val ONBOARDING_OFFERED = booleanPreferencesKey("onboarding_offered")
     }
 }

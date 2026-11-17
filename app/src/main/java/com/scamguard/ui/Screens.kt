@@ -262,6 +262,23 @@ fun LiveScreen(onBack: () -> Unit) {
             Body("Scam Guard is not listening. Go back and tap Start listening.", color = Neutral)
         }
 
+        if (ui.active && ui.mode == Mode.LIVE) {
+            val mic by Guard.micMode.collectAsState()
+            InfoCard {
+                Body("Hearing the caller", bold = true)
+                Body("Keep the call on speaker with the volume up, and the phone on a table. If the caller's words are missing below, try another microphone. Your choice is remembered.", color = Neutral)
+                @OptIn(androidx.compose.foundation.layout.ExperimentalLayoutApi::class)
+                androidx.compose.foundation.layout.FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    com.scamguard.calls.MicMode.entries.forEach { m ->
+                        OutlinedButton(onClick = {
+                            Guard.micMode.value = m
+                            scope.launch { ProfileRepository(context).setMicMode(m.name) }
+                        }) { Text(if (m == mic) "✓ ${m.label}" else m.label, fontSize = 15.sp) }
+                    }
+                }
+            }
+        }
+
         if (band == Band.RED) {
             BigButton("Call 1930 (cyber fraud helpline)", color = Red) {
                 context.startActivity(Intent(Intent.ACTION_DIAL, Uri.parse("tel:1930")))

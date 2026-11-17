@@ -14,6 +14,8 @@ keystore.properties
 # Vosk model is fetched by `gradlew downloadVoskModel` (runs automatically before a build)
 app/src/main/assets/model-en-us/
 app/src/main/assets/model-en-in/
+app/src/main/assets/model-kroko/
+app/libs/
 eval/.cache/
 eval/audio/*.wav
 
