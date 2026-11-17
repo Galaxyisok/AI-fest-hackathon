@@ -175,6 +175,28 @@ class PipelineTest {
         assertEquals(Band.RED, ui.value.score.band)      // and the warning never came down
     }
 
+    @Test fun aSureFastModelIsNotSecondGuessedButAnUncertainOneIs() {
+        val sure = CascadePolicy()
+        assertFalse(sure.shouldRunDeep(0, 90.0, 90.0))          // fast already at 90, deep never involved: skip
+        assertFalse(sure.shouldRunDeep(60_000, 92.0, 95.0))     // and it stays skipped
+        val unsure = CascadePolicy()
+        assertTrue(unsure.shouldRunDeep(0, 60.0, 60.0))         // the zone where genuine calls and scams overlap
+        unsure.onDeepStarted(0, 60.0); unsure.onDeepVerdict(40.0)
+        assertTrue(unsure.shouldRunDeep(5_000, 70.0, 92.0))     // deep said 40, fast now 92: refresh, never leave it stale
+    }
+
+    @Test fun aDeepVerdictDoesNotWipeTheEvidenceBullets() = runTest {
+        val ui = MutableStateFlow(GuardUi())
+        val s = GuardSession(this, { tier, _ ->
+            JudgeOutcome.Ok(if (tier == Tier.DEEP) Verdict(tier, 70, "high", "deep reason", "none", emptyList()) else verdict(tier, 70))
+        }, null, CallerPrior(), ui, { testScheduler.currentTime })
+        s.onEvent(SttEvent.Final("this is the police you are under digital arrest do not tell anyone"))
+        advanceUntilIdle()
+        assertEquals(1, ui.value.deepChecks)
+        assertEquals("deep reason", ui.value.reason)
+        assertTrue(ui.value.signals.any { it.key == "authority" && it.evidence == "this is the police" })
+    }
+
     @Test fun aDeepVerdictBelowSettledStillAllowsAnotherLook() {
         val p = CascadePolicy()
         assertTrue(p.shouldRunDeep(0, 40.0, 40.0))

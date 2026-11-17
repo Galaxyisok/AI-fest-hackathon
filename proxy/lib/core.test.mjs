@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validate, normalise, allow, BadRequest, MAX_TRANSCRIPT_CHARS, modelFor } from './judge-core.mjs';
+import { validate, normalise, allow, BadRequest, MAX_TRANSCRIPT_CHARS, modelFor, requestFor, deepIsSlim } from './judge-core.mjs';
 import { buildUserMessage, VERDICT_SCHEMA } from './prompt.mjs';
 
 test('validate rejects anything that is not a transcript', () => {
@@ -64,4 +64,28 @@ test('models are configuration', () => {
   assert.equal(modelFor('deep', {}), 'claude-sonnet-5-5');
   assert.equal(modelFor('deep', { JUDGE_DEEP_MODEL: 'claude-haiku-5-5' }), 'claude-haiku-5-5');
   assert.equal(VERDICT_SCHEMA.additionalProperties, false);
+});
+
+test('the slim deep reply is opt-in, deep-only, and normalises to the same shape', () => {
+  const input = validate({ tier: 'deep', transcript: 'hello this is the bank calling about your card' });
+  const full = requestFor('deep', input, {});
+  assert.ok(full.output_config.format.schema.properties.signals, 'default deep reply keeps the signal list');
+  assert.match(full.system[0].text, /For each signal give evidence first/);
+
+  const slim = requestFor('deep', input, { JUDGE_DEEP_OUTPUT: 'slim' });
+  assert.equal(slim.output_config.format.schema.properties.signals, undefined);
+  assert.deepEqual(slim.output_config.format.schema.required, ['matched_threat', 'profile_match', 'confidence', 'scam_probability', 'reason']);
+  assert.match(slim.system[0].text, /do not list them/);
+  assert.doesNotMatch(slim.system[0].text, /For each signal give evidence first/);
+  assert.match(slim.system[0].text, /Hearing mostly one side/, 'the judging instructions are unchanged');
+
+  const fast = requestFor('fast', input, { JUDGE_DEEP_OUTPUT: 'slim' });
+  assert.ok(fast.output_config.format.schema.properties.signals, 'the fast tier is never slimmed: the app shows its evidence');
+  assert.equal(deepIsSlim('fast', { JUDGE_DEEP_OUTPUT: 'slim' }), false);
+
+  const n = normalise({ matched_threat: 'kyc_bank', profile_match: 3, confidence: 'high', scam_probability: 91, reason: 'Asks for your code.' });
+  assert.equal(n.scam_probability, 91);
+  assert.equal(n.signals.profile_match.score, 3);
+  assert.equal(n.signals.authority.score, 0);
+  assert.equal(n.signals.authority.evidence, 'none');
 });

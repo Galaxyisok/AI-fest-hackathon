@@ -41,6 +41,28 @@ Scoring guide for scam_probability (0 to 100)
 Output
 For each signal give evidence first, then a score from 0 (absent) to 3 (explicit and strong). Evidence is a short quote from the transcript, or "none". For profile_match, score how closely this call follows a scam type from the person's profile, and quote the part that matches. matched_threat is the single closest type, "other_scam" for a scam that fits none of them, or "none" for a normal call. reason is one sentence of at most 22 words, in plain English, spoken to the person on the phone: say what the caller is doing and why that is or is not a worry. No jargon, no signal names, no percentages.`;
 
+// ---- Slim reply for the deep tier (off unless JUDGE_DEEP_OUTPUT=slim) ----
+// The deep model's reply is about three quarters of what a deep call costs, and most of that reply is
+// seven quoted evidence snippets the fast model has already given the app for the same call. The slim
+// form asks the deep model for its verdict only. NOT switched on until measured against the full form.
+const OUTPUT_HEADING = '\nOutput\n';
+export const SYSTEM_PROMPT_DEEP_SLIM = SYSTEM_PROMPT.slice(0, SYSTEM_PROMPT.indexOf(OUTPUT_HEADING)) + `
+Output
+Weigh all six signals above before you answer, but do not list them. Give only: scam_probability; confidence; matched_threat, the single closest type, "other_scam" for a scam that fits none of them, or "none" for a normal call; profile_match, from 0 (absent) to 3 (explicit and strong), for how closely this call follows a scam type from the person's profile; and reason, one sentence of at most 22 words, in plain English, spoken to the person on the phone: say what the caller is doing and why that is or is not a worry. No jargon, no signal names, no percentages.`;
+
+export const VERDICT_SCHEMA_SLIM = {
+  type: 'object',
+  properties: {
+    matched_threat: { type: 'string', enum: [...THREAT_TYPES, 'other_scam', 'none'] },
+    profile_match: { type: 'integer', enum: [0, 1, 2, 3] },
+    confidence: { type: 'string', enum: ['low', 'medium', 'high'] },
+    scam_probability: { type: 'integer' },
+    reason: { type: 'string' },
+  },
+  required: ['matched_threat', 'profile_match', 'confidence', 'scam_probability', 'reason'],
+  additionalProperties: false,
+};
+
 const signal = {
   type: 'object',
   properties: {

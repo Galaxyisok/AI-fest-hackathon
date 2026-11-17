@@ -1,7 +1,7 @@
 // Shared by the Vercel function (api/judge.js) and the local dev server (local.mjs).
 // Stateless: nothing here writes a transcript, a verdict or an IP address anywhere.
 import Anthropic from '@anthropic-ai/sdk';
-import { SYSTEM_PROMPT, VERDICT_SCHEMA, THREAT_TYPES, SIGNAL_KEYS, buildUserMessage } from './prompt.mjs';
+import { SYSTEM_PROMPT, VERDICT_SCHEMA, SYSTEM_PROMPT_DEEP_SLIM, VERDICT_SCHEMA_SLIM, THREAT_TYPES, SIGNAL_KEYS, buildUserMessage } from './prompt.mjs';
 import { redact } from './redactor.mjs';
 
 export const MAX_TRANSCRIPT_CHARS = 8000;   // about 8 minutes of speech; older text is dropped from the front
@@ -44,14 +44,18 @@ export function validate(body) {
   return { tier, transcript, profile, prior };
 }
 
-function requestFor(tier, input, env) {
+/** True when the deep tier is asked for its verdict only (see prompt.mjs). Off by default. */
+export const deepIsSlim = (tier, env = process.env) => tier === 'deep' && env.JUDGE_DEEP_OUTPUT === 'slim';
+
+export function requestFor(tier, input, env = process.env) {
+  const slim = deepIsSlim(tier, env);
   const req = {
     model: modelFor(tier, env),
     max_tokens: tier === 'deep' ? 4000 : 1200,
-    system: [{ type: 'text', text: SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
+    system: [{ type: 'text', text: slim ? SYSTEM_PROMPT_DEEP_SLIM : SYSTEM_PROMPT, cache_control: { type: 'ephemeral' } }],
     messages: [{ role: 'user', content: buildUserMessage(input) }],
     output_config: {
-      format: { type: 'json_schema', schema: VERDICT_SCHEMA },
+      format: { type: 'json_schema', schema: slim ? VERDICT_SCHEMA_SLIM : VERDICT_SCHEMA },
       effort: tier === 'deep' ? (env.JUDGE_DEEP_EFFORT || 'low') : (env.JUDGE_FAST_EFFORT || 'low'),
     },
   };
@@ -65,7 +69,8 @@ export function normalise(raw) {
   const v = typeof raw === 'string' ? JSON.parse(raw) : raw;
   const signals = {};
   for (const k of SIGNAL_KEYS) {
-    const s = v.signals?.[k] ?? {};
+    // A slim deep reply carries no signal list, only profile_match as a bare number.
+    const s = v.signals?.[k] ?? (k === 'profile_match' && Number.isInteger(v.profile_match) ? { score: v.profile_match } : {});
     signals[k] = {
       score: Math.min(3, Math.max(0, Number.isInteger(s.score) ? s.score : 0)),
       evidence: String(s.evidence ?? 'none').slice(0, 200),

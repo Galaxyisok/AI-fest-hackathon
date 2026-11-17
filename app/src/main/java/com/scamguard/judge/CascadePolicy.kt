@@ -10,6 +10,11 @@ import kotlin.math.abs
  *   - the first time the score reaches the "be careful" zone
  *   - after that, every [intervalMs] while the call stays in that zone
  *   - straight away if the fast model has moved a long way since the deep model last looked
+ *   - not at all while the fast model is already sure ([sure] or more) and the deep model has not
+ *     been involved: on the held-out calls the fast model never scored a genuine call above 60,
+ *     and every scam ended at 85 or more, so a second opinion there only agrees. If the deep
+ *     model HAS given a verdict, it is still refreshed when the fast score moves, so an old
+ *     deep verdict is never left dragging the blend.
  *   - never again once the deep model itself has called the call a scam ([settled] or more):
  *     the warning is already up and cannot fall quickly, so another look would change nothing
  *     the user sees. The deep model is about 80% of the cost of a call, mostly in repeats.
@@ -21,6 +26,7 @@ class CascadePolicy(
     private val intervalMs: Long = 30_000,
     private val moveThreshold: Double = 20.0,
     private val settled: Double = 85.0,
+    private val sure: Double = 85.0,
 ) {
     private var lastDeepAt: Long? = null
     private var fastAtLastDeep = 0.0
@@ -30,7 +36,7 @@ class CascadePolicy(
     fun shouldRunDeep(nowMs: Long, fused: Double?, fastP: Double): Boolean {
         if (deepSaysScam) return false
         val last = lastDeepAt
-        if (last == null) return (fused ?: 0.0) >= amber || fastP >= amber
+        if (last == null) return fastP < sure && ((fused ?: 0.0) >= amber || fastP >= amber)
         if (abs(fastP - fastAtLastDeep) >= moveThreshold) return true
         return (fused ?: 0.0) >= amber && nowMs - last >= intervalMs
     }

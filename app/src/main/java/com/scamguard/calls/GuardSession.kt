@@ -191,6 +191,9 @@ class GuardSession(
         v.copy(confidence = "medium", probability = minOf(v.probability, UNSURE_CAP))
 
     private fun apply(v: Verdict, unsure: Boolean = false): Score {
+        // The "why" bullets and their quotes always come from the fast model, which looks at every stretch
+        // of speech. The deep model may be asked for its verdict only (no evidence list), so it never replaces them.
+        val keepBullets = v.tier == Tier.DEEP
         val score = fusion.update(v.toFusionInput(profile))
         if (v.confidence != "low" && !unsure) confidentSeen = true
         ui.update {
@@ -202,7 +205,7 @@ class GuardSession(
                     unsure -> UNSURE_REASON
                     else -> it.reason
                 },
-                signals = if (informative) v.signals.filter { s -> s.score >= 2 }.sortedByDescending { s -> s.score } else it.signals,
+                signals = if (informative && !keepBullets) v.signals.filter { s -> s.score >= 2 }.sortedByDescending { s -> s.score } else it.signals,
                 problem = null,
                 checks = it.checks + 1,
             )
